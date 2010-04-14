@@ -7,36 +7,49 @@ DENX=git://git.denx.de
 KERNEL=git://git.kernel.org/pub/scm/linux/kernel/git
 PSP=git://arago-project.org/git/people
 
+function update {
+ git checkout $1
+ git pull --ff-only
+ git push origin $1
+}
+
 #
 # x-load
 #
+echo Updating x-load...
 cd $DIR/x-load
-git remote update
-git push origin omapzoom/master
-git push origin sakoman/master
+update omapzoom/master
+update sakoman/master
+git checkout master
+git pull --ff-only
+git show-ref
 
 #
 # u-boot
 #
+echo Updating u-boot...
 cd $DIR/u-boot
-git remote update
-git push origin upstream/master
-git push origin upstream-ti/master
-git push origin sakoman/master
-git push origin omapzoom/master
-git push origin origin/omap3-dev-usb
+update upstream/master
+update upstream-ti/master
+update sakoman/master
+update omapzoom/master
+git checkout master
+git pull --ff-only
+git show-ref
 
 #
 # Linux
 #
+echo Updating Linux...
 cd $DIR/linux-2.6
-git remote update
-git push origin upstream/master
-git push origin linux-omap/master
-git push origin linux-omap-pm/master
-git push origin psp/master
-git push origin psp-video/master
-git push origin koen/master
-git push origin koen/beagleboardXM
-git push origin origin/master
+update upstream/master
+update linux-omap/master
+update linux-omap-pm/master
+update psp/master
+update psp-video/master
+update koen/master
+update koen/beagleboardXM
+git checkout master
+git pull --ff-only
+git show-ref
 
