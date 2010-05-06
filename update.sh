@@ -20,6 +20,7 @@ echo Updating x-load...
 cd $DIR/x-load
 update omapzoom/master
 update sakoman/master
+update psp/master
 git checkout master
 git pull --ff-only
 git show-ref
@@ -33,6 +34,7 @@ update upstream/master
 update upstream-ti/master
 update sakoman/master
 update omapzoom/master
+update psp/master
 git checkout master
 git pull --ff-only
 git show-ref
