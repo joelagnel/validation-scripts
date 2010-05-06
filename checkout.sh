@@ -21,6 +21,7 @@ git remote add psp $PSP2/x-load-omap3.git
 git remote update
 git checkout -b omapzoom/master --track omapzoom/master
 git checkout -b sakoman/master --track sakoman/master
+git checkout -b psp/master --track psp/master
 git checkout -b master --track origin/master
 
 #
@@ -40,6 +41,7 @@ git checkout -b upstream/master --track upstream/master
 git checkout -b upstream-ti/master --track upstream-ti/master
 git checkout -b sakoman/master --track sakoman/master
 git checkout -b omapzoom/master --track omapzoom/master
+git checkout -b psp/master --track psp/master
 git checkout -b omap3-dev-usb --track origin/omap3-dev-usb
 git checkout -b master --track origin/master
 
