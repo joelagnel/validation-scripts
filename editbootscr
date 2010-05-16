@@ -12,8 +12,11 @@ cat $TMPFILE
 echo "Is this correct? [N/y] "
 read p
 if [ x$p = x'y' ]; then
-do_mkimage "Hand edited" myboot.scr
+do_mkimage "Hand edited" /tmp/myboot.scr
 cp /media/mmcblk0p1/boot.scr /media/mmcblk0p1/last.scr
-cp myboot.scr /media/mmcblk0p1/boot.scr
+echo "Replacing previous boot.scr with newly created version"
+cp /tmp/myboot.scr /media/mmcblk0p1/boot.scr
+else
+echo "Leaving existing boot.scr in place"
 fi
 
