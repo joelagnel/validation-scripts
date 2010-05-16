@@ -1,0 +1,19 @@
+#!/bin/bash
+TMPFILE=/tmp/$(basename $0).$$.cmd
+
+function do_mkimage {
+echo Building script \""$1\"" - $2
+mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "$1" -d $TMPFILE $2
+}
+
+dd if=/media/mmcblk0p1/boot.scr of=$TMPFILE bs=1 skip=72
+$EDITOR $TMPFILE
+cat $TMPFILE
+echo "Is this correct? [N/y] "
+read p
+if [ $p = 'y' ]; then
+do_mkimage "Hand edited" myboot.scr
+cp /media/mmcblk0p1/boot.scr /media/mmcblk0p1/last.scr
+cp myboot.scr /media/mmcblk0p1/boot.scr
+fi
+
