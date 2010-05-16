@@ -1,0 +1,8 @@
+#!/bin/bash
+echo "Starting recording now..."
+TMPFILE=/tmp/$(basename $0).$$.pcm
+arecord -t wav -c 2 -r 44100 -f S16_LE -v $TMPFILE &
+PID=$!
+sleep 10
+kill -15 $PID
+aplay -t wav -c 2 -r 44100 -f S16_LE -v $TMPFILE
