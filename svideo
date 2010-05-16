@@ -1,10 +1,39 @@
-tvline=`cat /sys/devices/platform/omapfb/displays |grep tv`
-w=`echo $tvline | cut -d " " -f 5 | cut -d ":" -f 2 | cut -d "/" -f 1`
-h=`echo $tvline | cut -d " " -f 6 | cut -d ":" -f 2 | cut -d "/" -f 1`
-echo "1 t:none" > /sys/devices/platform/omapfb/framebuffers
-echo "0 t:gfx,vid1" > /sys/devices/platform/omapfb/framebuffers
-echo "gfx e:1" > /sys/devices/platform/omapfb/overlays
-echo "vid1 t:tv w:$w h:$h e:1" > /sys/devices/platform/omapfb/overlays
-echo "tv e:1" > /sys/devices/platform/omapfb/displays
+# See /boot/DSS
+ovl0=/sys/devices/platform/omapdss/overlay0
+ovl1=/sys/devices/platform/omapdss/overlay1
+ovl2=/sys/devices/platform/omapdss/overlay2
+mgr0=/sys/devices/platform/omapdss/manager0
+mgr1=/sys/devices/platform/omapdss/manager1
+dvi=/sys/devices/platform/omapdss/display0
+tv=/sys/devices/platform/omapdss/display1
 
+w=`cat $dvi/timings | cut -d "," -f 2 | cut -d "/" -f 1`
+h=`cat $dvi/timings | cut -d "," -f 3 | cut -d "/" -f 1`
+echo "Current resolution is $w x $h"
+
+# Set TV timings
+echo "ntsc" > /sys/devices/platform/omapdss/display1/timings 
+#echo "pal" > /sys/devices/platform/omapdss/display1/timings 
+
+w=`cat $tv/timings | cut -d "," -f 2 | cut -d "/" -f 1`
+h=`cat $tv/timings | cut -d "," -f 3 | cut -d "/" -f 1`
+echo "Switching to TV output ($w x $h)..."
+echo "0" > $tv/enabled
+echo "0" > $dvi/enabled
+echo "" > $mgr0/display
+fbset -fb /dev/fb0 -xres $w -yres $h -vxres $w -vyres $h
+echo "tv" > $mgr0/display
+echo "1" > $tv/enabled
+
+sleep 10
+
+w=`cat $dvi/timings | cut -d "," -f 2 | cut -d "/" -f 1`
+h=`cat $dvi/timings | cut -d "," -f 3 | cut -d "/" -f 1`
+echo "Switching to DVI output ($w x $h)..."
+echo "0" > $tv/enabled
+echo "0" > $dvi/enabled
+echo "" > $mgr0/display
+fbset -fb /dev/fb0 -xres $w -yres $h -vxres $w -vyres $h
+echo "dvi" > $mgr0/display
+echo "1" > $dvi/enabled
 
