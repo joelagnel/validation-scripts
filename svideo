@@ -1,3 +1,4 @@
+#!/bin/sh
 # See /boot/DSS
 ovl0=/sys/devices/platform/omapdss/overlay0
 ovl1=/sys/devices/platform/omapdss/overlay1
