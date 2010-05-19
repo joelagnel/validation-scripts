@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#setenv bootargs 'console=tty0 console=ttyS2,115200n8 mpurate=600 nohz=off vram=16M omapfb.mode=dvi:hd720 omapdss.def_disp=dvi omapfb.vram=0:8M,1:4M,2:4M root=/dev/mmcblk0p2 rw rootfstype=ext3 rootwait mem=99M@0x80000000 mem=384M@0x88000000'
+#setenv bootargs 'init=/bin/busybox sh console=tty0 console=ttyS2,115200n8 mpurate=600 nohz=off vram=16M omapfb.mode=dvi:hd720 omapdss.def_disp=dvi omapfb.vram=0:8M,1:4M,2:4M root=/dev/mmcblk0p2 rw rootfstype=ext3 rootwait mem=99M@0x80000000 mem=384M@0x88000000'
+#setenv bootargs 'console=tty0 console=ttyS2,115200n8 mpurate=600 nohz=off vram=16M omapfb.mode=dvi:1024x768MR-24@60 omapdss.def_disp=dvi omapfb.vram=0:8M,1:4M,2:4M root=/dev/mmcblk0p2 rw rootfstype=ext3 rootwait mem=99M@0x80000000 mem=384M@0x88000000'
+cat <<EOF > xmbootscr.cmd
+mmc init
+setenv bootargs 'init=/bin/busybox sh console=tty0 console=ttyS2,115200n8 mpurate=600 nohz=off vram=16M omapfb.mode=dvi:hd720 omapdss.def_disp=dvi omapfb.vram=0:8M,1:4M,2:4M root=/dev/mmcblk0p2 rw rootfstype=ext3 rootwait mem=99M@0x80000000 mem=384M@0x88000000'
+fatload mmc 0 0x82000000 uImage
+bootm 0x82000000
+EOF
+
+mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n 'xM Boot Script' -d xmbootscr.cmd boot.scr
