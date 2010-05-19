@@ -7,6 +7,7 @@ DENX=git://git.denx.de
 KERNEL=git://git.kernel.org/pub/scm/linux/kernel/git
 PSP=git://arago-project.org/git/people
 PSP2=git://arago-project.org/git/projects
+ROWBOAT=git://gitorious.org/rowboat
 
 #
 # x-load
@@ -58,6 +59,7 @@ git remote add linux-omap-pm $KERNEL/khilman/linux-omap-pm.git
 git remote add psp $PSP/sriram/ti-psp-omap.git
 git remote add psp-video $PSP/vaibhav/ti-psp-omap-video.git
 git remote add koen git://gitorious.org/angstrom/angstrom-linux.git
+git remote add rowboat $ROWBOAT/kernel.git
 git remote update
 git checkout -b upstream/master --track upstream/master
 git checkout -b linux-omap/master --track linux-omap/master
@@ -67,4 +69,5 @@ git checkout -b psp-video/master --track psp-video/master
 git checkout -b koen/master --track koen/master
 git checkout -b koen/beagleboardXM --track koen/beagleboardXM
 git checkout -b master --track origin/master
+git checkout -b rowboat/master --track rowboat/master
 
