@@ -1,0 +1,10 @@
+tvline=`cat /sys/devices/platform/omapfb/displays |grep tv`
+w=`echo $tvline | cut -d " " -f 5 | cut -d ":" -f 2 | cut -d "/" -f 1`
+h=`echo $tvline | cut -d " " -f 6 | cut -d ":" -f 2 | cut -d "/" -f 1`
+echo "1 t:none" > /sys/devices/platform/omapfb/framebuffers
+echo "0 t:gfx,vid1" > /sys/devices/platform/omapfb/framebuffers
+echo "gfx e:1" > /sys/devices/platform/omapfb/overlays
+echo "vid1 t:tv w:$w h:$h e:1" > /sys/devices/platform/omapfb/overlays
+echo "tv e:1" > /sys/devices/platform/omapfb/displays
+
+
