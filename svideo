@@ -13,8 +13,8 @@ h=`cat $dvi/timings | cut -d "," -f 3 | cut -d "/" -f 1`
 echo "Current resolution is $w x $h"
 
 # Set TV timings
-echo "ntsc" > /sys/devices/platform/omapdss/display1/timings 
-#echo "pal" > /sys/devices/platform/omapdss/display1/timings 
+echo "ntsc" > $tv/timings 
+#echo "pal" > $tv/timings 
 
 w=`cat $tv/timings | cut -d "," -f 2 | cut -d "/" -f 1`
 h=`cat $tv/timings | cut -d "," -f 3 | cut -d "/" -f 1`
