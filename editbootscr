@@ -1,12 +1,19 @@
 #!/bin/bash
 TMPFILE=/tmp/$(basename $0).$$.cmd
 
+if [ ! -e /media/mmcblk0p1/boot.scr ]; then
+mount /dev/mmcblk0p1 /media/mmcblk0p1
+fi
+
 function do_mkimage {
 echo Building script \""$1\"" - $2
 mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "$1" -d $TMPFILE $2
 }
 
 dd if=/media/mmcblk0p1/boot.scr of=$TMPFILE bs=1 skip=72
+if [ x$EDITOR = x ]; then
+EDITOR=nano
+fi
 $EDITOR $TMPFILE
 cat $TMPFILE
 echo "Is this correct? [N/y] "
