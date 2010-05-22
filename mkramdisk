@@ -1,0 +1,34 @@
+TARBALL=$1
+RAMDISK=ramdisk
+MOUNTPT=/tmp/ramdisk0
+BLKSIZE=1M
+RDSIZE=32
+if [ "x$TARBALL" = "x" ]; then
+	echo "Please specify a rootfs tarball to use"
+	exit 1
+fi
+TARBALL_FULL=$(cd $(dirname $TARBALL); pwd)/$(basename $TARBALL)
+if [ ! -e $TARBALL ]; then
+	echo "Cannot find $TARBALL"
+	exit 1
+fi
+#for tool in pushd popd mke2fs; do
+for tool in mke2fs; do
+	if ! type $tool >/dev/null 2>&1; then
+		echo "ERROR: \"$tool\" not found."
+		exit 2
+	fi
+done
+echo "Using $TARBALL_FULL to create ramdisk"
+mkdir -p $MOUNTPT
+dd if=/dev/zero of=$RAMDISK bs=$BLKSIZE count=$RDSIZE
+yes | mke2fs $RAMDISK
+mount -t ext2 -o loop $RAMDISK $MOUNTPT
+if [ ! -e $MOUNTPT/lost+found ]; then
+	echo "Could not mount $RAMDISK at $MOUNTPT"
+	exit 1
+fi
+tar xvj -C $MOUNTPT -f $TARBALL
+umount $MOUNTPT
+gzip $RAMDISK
+
