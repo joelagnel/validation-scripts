@@ -1,0 +1,5 @@
+#!/bin/bash
+DRIVE=$1
+IMAGE=$2
+dd if=${DRIVE} | gzip -c > $2.gz
+

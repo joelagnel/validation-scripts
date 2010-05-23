@@ -1,0 +1,30 @@
+#!/bin/bash
+RAMDISK=$1
+DONE=$2
+MOUNTPT=/tmp/ramdisk0
+BLKSIZE=1M
+RDSIZE=32
+
+if [ "x$RAMDISK" = "x" ]; then
+	echo "Please specify a ramdisk image file"
+	exit 1
+fi
+
+if [ "$DONE" = "y" ]; then
+	umount $MOUNTPT
+	#gzip $RAMDISK
+else
+	for tool in gunzip mount; do
+		if ! type $tool >/dev/null 2>&1; then
+			echo "ERROR: \"$tool\" not found."
+			exit 2
+		fi
+	done
+	mkdir -p $MOUNTPT
+	#gunzip $RAMDISK.gz
+	mount -t ext2 -o loop $RAMDISK $MOUNTPT
+	if [ ! -e $MOUNTPT/lost+found ]; then
+		echo "Could not mount $RAMDISK at $MOUNTPT"
+		exit 1
+	fi
+fi
