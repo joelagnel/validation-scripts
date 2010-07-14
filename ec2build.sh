@@ -134,7 +134,18 @@ function publish {
 ec2-register $S3_BUCKET/$1.manifest.xml
 }
 
-function enable_oe {
+function disable-dash {
+sudo aptitude install expect -y
+expect <<EOF
+spawn dpkg-reconfigure -freadline dash
+send "n\n"
+interact
+EOF
+}
+
+function enable-oe {
+cd $HOME
+disable-dash
 sudo aptitude install sed wget cvs subversion git-core \
  coreutils unzip texi2html texinfo libsdl1.2-dev docbook-utils \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
@@ -144,6 +155,19 @@ git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
 cd angstrom-setup-scripts
 ./oebb.sh config beagleboard
 ./oebb.sh update
+}
+
+function oebb {
+cd $HOME/angstrom-setup-scripts
+./oebb.sh $1 $2 $3 $4 $5 $6 $7 $8 $9
+}
+
+function remote-oebb {
+remote oebb $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+function build-default {
+remote-oebb bitbake console-image
 }
 
 $*
