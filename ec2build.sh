@@ -145,6 +145,8 @@ git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
 cd angstrom-setup-scripts
 ./oebb.sh config beagleboard
 ./oebb.sh update
+perl -pe 's/^#PARALLEL_MAKE/PARALLEL_MAKE/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"2"/BB_NUMBER_THREADS = "4"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
 }
 
 # target local
