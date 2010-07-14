@@ -26,6 +26,8 @@ DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
 MACH_TYPE=m1.large
 USER=ubuntu
 DOWNLOAD_EBS=vol-f0402d99
+DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
+TMPFS_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
 
 THIS_FILE=$0
 
@@ -232,14 +234,14 @@ format-ebs-ami $DOWNLOAD_EBS /dev/sdd
 
 function mount-download-ebs {
 #attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
-mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $HOME/angstrom-setup-scripts/sources/downloads
-sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/sources/downloads
+mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $DOWNLOAD_DIR
+sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
 }
 
 function mount-tmp {
-mkdir -p $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
-sudo mount -t tmpfs tmpfs $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
-sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
+mkdir -p $TMPFS_DIR
+sudo mount -t tmpfs tmpfs $TMPFS_DIR
+sudo chown ubuntu.ubuntu $TMPFS_DIR
 }
 
 # http://xentek.net/articles/448/installing-fuse-s3fs-and-sshfs-on-ubuntu/
@@ -262,7 +264,7 @@ sudo s3fs angstrom-builds -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWOR
 function bundle-vol {
 IMAGE_NAME=$1
 echo IMAGE_NAME=$IMAGE_NAME
-ec2-bundle-vol -d /mnt -e $HOME/secret $EC2_ID -p $IMAGE_NAME
+ec2-bundle-vol -d /mnt -e $HOME/secret -e  $EC2_ID -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 }
 
