@@ -230,8 +230,8 @@ format-ebs-ami $DOWNLOAD_EBS /dev/sdd
 
 function mount-download-ebs {
 #attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
-mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $HOME/angstrom-setup-scripts/build/downloads
-sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/build/downloads
+mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $HOME/angstrom-setup-scripts/sources/downloads
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/sources/downloads
 }
 
 function mount-tmp {
