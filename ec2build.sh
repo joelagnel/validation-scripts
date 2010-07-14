@@ -33,6 +33,9 @@ USER=ubuntu
 
 THIS_FILE=$0
 
+# Clear any local vars
+AMI=
+
 # Additional parameters for initiating host
 function find-instance {
 AMI=$1
@@ -109,10 +112,10 @@ ssh -i $KEYPAIR_FILE $USER@$MACH_NAME $2 $3 $4 $5 $6 $7 $8 $9
 
 function copy-files {
 find-instance $AMI
-ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir $HOME/secret; chmod 700 $HOME/secret'
+ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
 scp -i $KEYPAIR_FILE $EC2_CERT $USER@$MACH_NAME:secret/cert.pem
 scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY $USER@$MACH_NAME:secret/pk.pem
-scp -i $KEYPAIR_FILE secret/setup_env.sh $USER@$MACH_NAME:secret/setup_env.sh
+scp -i $KEYPAIR_FILE $HOME/secret/setup_env.sh $USER@$MACH_NAME:secret/setup_env.sh
 scp -i $KEYPAIR_FILE $THIS_FILE $USER@$MACH_NAME:ec2build.sh
 }
 
