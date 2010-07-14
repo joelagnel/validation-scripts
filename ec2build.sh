@@ -21,9 +21,12 @@ VOLUMES=$HOME/ec2build-volumes.txt
 
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD=ami-e00de889
-DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
+AMI_BEAGLEBOARD_VALIDATION=ami-f0917a99
 #DEFAULT_AMI=$AMI_BEAGLEBOARD
-MACH_TYPE=m1.large
+#DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
+DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
+#MACH_TYPE=m1.large
+MACH_TYPE=m2.4xlarge
 USER=ubuntu
 DOWNLOAD_EBS=vol-f0402d99
 DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
@@ -40,7 +43,8 @@ AMI=$1
 if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
 if [ "x$INSTANCE" = "x" ];
 then
- ec2-describe-instances | tee $INSTANCES;
+ #ec2-describe-instances | tee $INSTANCES;
+ ec2-describe-instances > $INSTANCES;
  INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$1"' $INSTANCES`
  MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$2";' $INSTANCES`
 fi
@@ -54,12 +58,9 @@ ec2-add-keypair $KEYPAIR > $KEYPAIR_FILE
 chmod 600 $KEYPAIR_FILE
 }
 
-function run-default-ami {
-run-ami $DEFAULT_AMI
-}
-
 function run-ami {
 AMI=$1
+if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
 if [ "x$MACH_TYPE" == "x" ];
 then
 ec2-run-instances $AMI -k $KEYPAIR
@@ -182,7 +183,8 @@ VOLUME_STATUS=
 while
  [ ! "x$VOLUME_STATUS" = "xavailable" ]
 do
- ec2-describe-volumes | tee $VOLUMES;
+ #ec2-describe-volumes | tee $VOLUMES;
+ ec2-describe-volumes > $VOLUMES;
  #VOLUME  vol-b629ccdf    200             us-east-1c      in-use
  VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
@@ -200,7 +202,8 @@ VOLUME_STATUS=
 while
  [ ! "x$VOLUME_STATUS" = "xattached" ]
 do
- ec2-describe-volumes | tee $VOLUMES;
+ #ec2-describe-volumes | tee $VOLUMES;
+ ec2-describe-volumes > $VOLUMES;
  #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
@@ -218,7 +221,8 @@ VOLUME_STATUS=
 while
  [ ! "x$VOLUME_STATUS" = "xattached" ]
 do
- ec2-describe-volumes | tee $VOLUMES;
+ #ec2-describe-volumes | tee $VOLUMES;
+ ec2-describe-volumes > $VOLUMES;
  #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
@@ -258,7 +262,7 @@ sudo perl -pe 's/^#user_allow_other/user_allow_other/' -i.bak /etc/fuse.conf
 function mount-s3 {
 sudo mkdir -p /mnt/s3
 sudo modprobe fuse
-sudo s3fs angstrom-builds -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o allow_other /mnt/s3
+sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o allow_other /mnt/s3
 }
 
 function bundle-vol {
@@ -269,7 +273,10 @@ ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $
 }
 
 function publish {
-ec2-register $S3_BUCKET/$1.manifest.xml
+if [ "x$IMAGE_NAME" = "x" ]; then
+ IMAGE_NAME=ec2build-`date +%Y%m%d`
+fi
+ec2-register $S3_BUCKET/$IMAGE_NAME.manifest.xml
 }
 
 $*
