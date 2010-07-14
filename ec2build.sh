@@ -262,9 +262,9 @@ sudo s3fs angstrom-builds -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWOR
 }
 
 function bundle-vol {
-IMAGE_NAME=$1
+IMAGE_NAME=ec2build-`date +%Y%m%d`
 echo IMAGE_NAME=$IMAGE_NAME
-ec2-bundle-vol -d /mnt -e $HOME/secret -e  $EC2_ID -p $IMAGE_NAME
+sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt -e $HOME/secret -e $DOWNLOAD_DIR -e $TMPFS_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 }
 
