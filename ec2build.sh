@@ -231,17 +231,13 @@ format-ebs-ami $DOWNLOAD_EBS /dev/sdd
 function mount-download-ebs {
 #attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
 mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $HOME/angstrom-setup-scripts/build/downloads
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/build/downloads
 }
 
-function bundle-vol {
-IMAGE_NAME=$1
-echo IMAGE_NAME=$IMAGE_NAME
-ec2-bundle-vol -d /mnt -e $HOME/secret $EC2_ID -p $IMAGE_NAME
-ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
-}
-
-function publish {
-ec2-register $S3_BUCKET/$1.manifest.xml
+function mount-tmp {
+mkdir -p $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
+sudo mount -t tmpfs tmpfs $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
 }
 
 # http://xentek.net/articles/448/installing-fuse-s3fs-and-sshfs-on-ubuntu/
@@ -259,6 +255,17 @@ function mount-s3 {
 sudo mkdir -p /mnt/s3
 sudo modprobe fuse
 sudo s3fs angstrom-builds -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o allow_other /mnt/s3
+}
+
+function bundle-vol {
+IMAGE_NAME=$1
+echo IMAGE_NAME=$IMAGE_NAME
+ec2-bundle-vol -d /mnt -e $HOME/secret $EC2_ID -p $IMAGE_NAME
+ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
+}
+
+function publish {
+ec2-register $S3_BUCKET/$1.manifest.xml
 }
 
 $*
