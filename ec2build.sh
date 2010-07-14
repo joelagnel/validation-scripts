@@ -120,6 +120,13 @@ ec2-terminate-instances $INSTANCE;
 }
 
 # target local
+function enable-ec2 {
+# These are apparently non-free apps
+sudo perl -pe 's/universe$/universe multiverse/' -i.bak /etc/apt/sources.list
+sudo aptitude install ec2-api-tools ec2-ami-tools -y
+}
+
+# target local
 function disable-dash {
 sudo aptitude install expect -y
 expect -c 'spawn sudo dpkg-reconfigure -freadline dash; send "n\n"; interact;'
@@ -180,6 +187,23 @@ ec2-attach-volume $EBS_VOLUME -i $INSTANCE -d $DEVICE
 }
 
 # target local
+function format-ebs-ami {
+EBS_VOLUME=$1
+DEVICE=$2
+AMI=$3
+find-instance $AMI
+VOLUME_STATUS=
+while
+ [ ! "x$VOLUME_STATUS" = "xattached" ]
+do
+ ec2-describe-volumes | tee $VOLUMES;
+ #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
+ VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
+ echo VOLUME_STATUS=$VOLUME_STATUS
+done
+sudo mkfs.ext3 $DEVICE -F
+}
+
 function mount-ebs-ami {
 EBS_VOLUME=$1
 DEVICE=$2
@@ -195,11 +219,18 @@ do
  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
 done
+mkdir -p $DIRNAME
+sudo mount $DEVICE $DIRNAME
+}
+
+function create-download-ebs {
+#attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
+format-ebs-ami $DOWNLOAD_EBS /dev/sdd 
 }
 
 function mount-download-ebs {
 #attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
-mount-ebs-ami $DOWNLOAD_EBS /dev/sdd 
+mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $HOME/angstrom-setup-scripts/build/downloads
 }
 
 function bundle-vol {
