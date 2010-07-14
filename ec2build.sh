@@ -20,8 +20,9 @@
 #  S3_BUCKET
 source $HOME/secret/setup_env.sh
 
-KEYPAIR=$HOME/secret/my-keypair.txt
-INSTANCES=$HOME/ami-instances.txt
+KEYPAIR=ec2build-keypair
+KEYPAIR_FILE=$HOME/secret/$KEYPAIR.txt
+INSTANCES=$HOME/ec2build-instances.txt
 
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD=ami-e00de889
@@ -30,20 +31,26 @@ DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
 MACH_TYPE=m1.large
 USER=ubuntu
 
+THIS_FILE=$0
+
 # Additional parameters for initiating host
 function find-instance {
 AMI=$1
-if [ "x$AMI" == "x" ]; then AMI=$DEFAULT_AMI; fi
-ec2-describe-instances | tee $INSTANCES;
-INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$1"' $INSTANCES`
-MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$2";' $INSTANCES`
+if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
+if [ "x$INSTANCE" = "x" ];
+then
+ ec2-describe-instances | tee $INSTANCES;
+ INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$1"' $INSTANCES`
+ MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$2";' $INSTANCES`
+fi
 echo INSTANCE=$INSTANCE;
 echo MACH_NAME=$MACH_NAME;
 }
 
 function make-keypair {
-ec2-add-keypair ec2build-keypair > $KEYPAIR
-chmod 600 $KEYPAIR
+#ec2-delete-keypair $KEYPAIR
+ec2-add-keypair $KEYPAIR > $KEYPAIR_FILE
+chmod 600 $KEYPAIR_FILE
 }
 
 function run-default-ami {
@@ -79,29 +86,45 @@ ec2-bundle-vol -d /mnt -e /root/secret -k /root/secret/pk.pem -c /root/secret/ce
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 }
 
-function remote {
+function add-sshkey-ami {
+AMI=$1
 find-instance $AMI
-ssh -i $KEYPAIR $USER@$EC2_MACH_NAME ec2build.sh $1 $2 $3 $4 $5 $6 $7 $8 $9
+mkdir -p $HOME/.ssh
+touch $HOME/.ssh/known_hosts
+chmod 644 $HOME/.ssh/known_hosts
+PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts`
+if [ "x$PKEY" = "x" ]
+then
+ echo "Adding $MACH_NAME to known hosts"
+ ssh-keyscan -t rsa $MACH_NAME >> $HOME/.ssh/known_hosts
+fi
+}
+
+function ssh-ami {
+AMI=$1
+find-instance $AMI
+add-sshkey-ami
+ssh -i $KEYPAIR_FILE $USER@$MACH_NAME $2 $3 $4 $5 $6 $7 $8 $9
 }
 
 function copy-files {
 find-instance $AMI
-ssh -i $KEYPAIR $USER@$EC2_MACH_NAME 'mkdir $HOME/secret; chmod 700 $HOME/secret'
-scp -i $KEYPAIR $EC2_CERT $USER@$EC2_MACH_NAME:secret/cert.pem
-scp -i $KEYPAIR $EC2_PRIVATE_KEY $USER@$EC2_MACH_NAME:secret/pk.pem
-scp -i $KEYPAIR secret/setup_env.sh $USER@$EC2_MACH_NAME:secret/setup_env.sh
+ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir $HOME/secret; chmod 700 $HOME/secret'
+scp -i $KEYPAIR_FILE $EC2_CERT $USER@$MACH_NAME:secret/cert.pem
+scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY $USER@$MACH_NAME:secret/pk.pem
+scp -i $KEYPAIR_FILE secret/setup_env.sh $USER@$MACH_NAME:secret/setup_env.sh
+scp -i $KEYPAIR_FILE $THIS_FILE $USER@$MACH_NAME:ec2build.sh
+}
+
+function remote {
+copy-files
+ssh-ami $AMI ./ec2build.sh $1 $2 $3 $4 $5 $6 $7
 }
 
 function halt-ami {
 AMI=$1
 find-instance $AMI
-ec2-terminate-instances $EC2_INSTANCE;
-}
-
-function login-ami {
-AMI=$1
-find-instance $AMI
-ssh -i $KEYPAIR $USER@$EC2_MACH_NAME
+ec2-terminate-instances $INSTANCE;
 }
 
 function publish {
