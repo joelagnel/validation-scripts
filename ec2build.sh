@@ -82,13 +82,6 @@ function authorize-ssh {
 ec2-authorize default -p 22
 }
 
-function bundle-vol {
-IMAGE_NAME=$1
-echo IMAGE_NAME=$IMAGE_NAME
-ec2-bundle-vol -d /mnt -e /root/secret -k /root/secret/pk.pem -c /root/secret/cert.pem -u $EC2_ID -p $IMAGE_NAME
-ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
-}
-
 function add-sshkey-ami {
 AMI=$1
 find-instance $AMI
@@ -130,10 +123,6 @@ find-instance $AMI
 ec2-terminate-instances $INSTANCE;
 }
 
-function publish {
-ec2-register $S3_BUCKET/$1.manifest.xml
-}
-
 function disable-dash {
 sudo aptitude install expect -y
 expect <<EOF
@@ -168,6 +157,17 @@ remote oebb $1 $2 $3 $4 $5 $6 $7 $8
 
 function build-default {
 remote-oebb bitbake console-image
+}
+
+function bundle-vol {
+IMAGE_NAME=$1
+echo IMAGE_NAME=$IMAGE_NAME
+ec2-bundle-vol -d /mnt -e $HOME/secret $EC2_ID -p $IMAGE_NAME
+ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
+}
+
+function publish {
+ec2-register $S3_BUCKET/$1.manifest.xml
 }
 
 $*
