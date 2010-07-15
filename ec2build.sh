@@ -28,9 +28,13 @@ DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
 #MACH_TYPE=m1.large
 MACH_TYPE=m2.4xlarge
 USER=ubuntu
-DOWNLOAD_EBS=vol-f0402d99
-DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
-TMPFS_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
+#DOWNLOAD_EBS=vol-f0402d99
+DOWNLOAD_EBS=vol-7ca3ce15
+ANGSTROM_EBS=vol-1adcb173
+#DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
+#TMPFS_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
+DOWNLOAD_DIR=/mnt/downloads
+TMPFS_DIR=$HOME/angstrom-setup-scripts
 
 THIS_FILE=$0
 
@@ -144,12 +148,15 @@ sudo aptitude install sed wget cvs subversion git-core \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
  desktop-file-utils chrpath -y
 sudo aptitude install libxml2-utils xmlto python-psyco -y
+mkdir -p $HOME/angstrom-setup-scripts
+sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
 git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
-cd angstrom-setup-scripts
+cd $HOME/angstrom-setup-scripts
 ./oebb.sh config beagleboard
 ./oebb.sh update
-perl -pe 's/^#PARALLEL_MAKE/PARALLEL_MAKE/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
-perl -pe 's/BB_NUMBER_THREADS\s*=\s*"2"/BB_NUMBER_THREADS = "4"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "3"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
 }
 
 # target local
@@ -165,12 +172,14 @@ remote oebb $1 $2 $3 $4 $5 $6 $7 $8
 
 # host-only
 function build-default {
-remote-oebb bitbake console-image
+#remote-oebb bitbake console-image
+remote-oebb bitbake beagleboard-demo-image
 }
 
 function create-download-ebs {
 # VOLUME  vol-10402d79    10              us-east-1c      creating        2010-07-14T08:21:14+0000
-DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1c | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
+#DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1c | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
+DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1b | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
 echo DOWNLOAD_EBS=$DOWNLOAD_EBS
 }
 
@@ -186,7 +195,7 @@ do
  #ec2-describe-volumes | tee $VOLUMES;
  ec2-describe-volumes > $VOLUMES;
  #VOLUME  vol-b629ccdf    200             us-east-1c      in-use
- VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
+ VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+(snap\S+\s+)?+\S+\s+(\S+)/ && print "$2"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
 done
 ec2-attach-volume $EBS_VOLUME -i $INSTANCE -d $DEVICE
@@ -232,19 +241,35 @@ sudo mount $DEVICE $DIRNAME
 }
 
 function create-download-ebs {
-#attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
+attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
 format-ebs-ami $DOWNLOAD_EBS /dev/sdd 
 }
 
 function mount-download-ebs {
-#attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
+attach-ebs-ami $DOWNLOAD_EBS /dev/sdd
 mount-ebs-ami $DOWNLOAD_EBS /dev/sdd $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
 }
 
+function restore-angstrom {
+attach-ebs-ami $ANGSTROM_EBS /dev/sde
+mount-ebs-ami $ANGSTROM_EBS /dev/sde /mnt/angstrom
+sudo chown ubuntu.ubuntu /mnt/angstrom
+mkdir -p $HOME/angstrom-setup-scripts
+sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
+#cp -R /mnt/angstrom/* $HOME/angstrom-setup-scripts/
+rsync -a /mnt/angstrom/* $HOME/angstrom-setup-scripts/
+}
+
+function preserve-angstrom {
+#cp -R $HOME/angstrom-setup-scripts/* /mnt/angstrom/
+rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
+}
+
 function mount-tmp {
 mkdir -p $TMPFS_DIR
-sudo mount -t tmpfs tmpfs $TMPFS_DIR
+sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $TMPFS_DIR
 sudo chown ubuntu.ubuntu $TMPFS_DIR
 }
 
