@@ -185,6 +185,18 @@ DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1b | perl -ne '/^VOLUME\s+(\S+)
 echo DOWNLOAD_EBS=$DOWNLOAD_EBS
 }
 
+function get-volume-status {
+ #ec2-describe-volumes | tee $VOLUMES;
+ ec2-describe-volumes > $VOLUMES;
+ #VOLUME  vol-b629ccdf    200             us-east-1c      in-use
+ VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+(snap\S+\s+)?+\S+\s+(\S+)/ && print "$2"' $VOLUMES`
+ if [ "$VOLUME_STATUS" = "in-use" ]; then
+  #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
+  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
+ fi
+ echo VOLUME_STATUS=$VOLUME_STATUS
+}
+
 function attach-ebs-ami {
 EBS_VOLUME=$1
 DEVICE=$2
@@ -192,13 +204,9 @@ AMI=$3
 find-instance $AMI
 VOLUME_STATUS=
 while
- [ ! "x$VOLUME_STATUS" = "xavailable" ]
+ [ ! "$VOLUME_STATUS" = "available" ]
 do
- #ec2-describe-volumes | tee $VOLUMES;
- ec2-describe-volumes > $VOLUMES;
- #VOLUME  vol-b629ccdf    200             us-east-1c      in-use
- VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+(snap\S+\s+)?+\S+\s+(\S+)/ && print "$2"' $VOLUMES`
- echo VOLUME_STATUS=$VOLUME_STATUS
+ get-volume-status
 done
 ec2-attach-volume $EBS_VOLUME -i $INSTANCE -d $DEVICE
 }
@@ -211,13 +219,9 @@ AMI=$3
 find-instance $AMI
 VOLUME_STATUS=
 while
- [ ! "x$VOLUME_STATUS" = "xattached" ]
+ [ ! "$VOLUME_STATUS" = "attached" ]
 do
- #ec2-describe-volumes | tee $VOLUMES;
- ec2-describe-volumes > $VOLUMES;
- #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
- VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
- echo VOLUME_STATUS=$VOLUME_STATUS
+ get-volume-status
 done
 sudo mkfs.ext3 $DEVICE -F
 }
