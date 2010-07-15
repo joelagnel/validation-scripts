@@ -24,13 +24,15 @@ AMI_BEAGLEBOARD=ami-e00de889
 AMI_BEAGLEBOARD_VALIDATION=ami-f0917a99
 #DEFAULT_AMI=$AMI_BEAGLEBOARD
 #DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
-DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
+if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
 #MACH_TYPE=m1.large
-MACH_TYPE=m2.4xlarge
+#MACH_TYPE=m2.4xlarge
+MACH_TYPE=m1.xlarge
 USER=ubuntu
 #DOWNLOAD_EBS=vol-f0402d99
 DOWNLOAD_EBS=vol-7ca3ce15
-ANGSTROM_EBS=vol-1adcb173
+#ANGSTROM_EBS=vol-1adcb173
+ANGSTROM_EBS=vol-24fa964d
 #DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
 #TMPFS_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
 DOWNLOAD_DIR=/mnt/downloads
@@ -287,7 +289,7 @@ sudo perl -pe 's/^#user_allow_other/user_allow_other/' -i.bak /etc/fuse.conf
 function mount-s3 {
 sudo mkdir -p /mnt/s3
 sudo modprobe fuse
-sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o allow_other /mnt/s3
+sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o default_acl="public-read" -o allow_other /mnt/s3
 }
 
 function bundle-vol {
@@ -298,10 +300,24 @@ ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $
 }
 
 function publish {
+if [ "x$1" = "x" ]; then
+ IMAGE_NAME=$1
+fi
 if [ "x$IMAGE_NAME" = "x" ]; then
  IMAGE_NAME=ec2build-`date +%Y%m%d`
 fi
-ec2-register $S3_BUCKET/$IMAGE_NAME.manifest.xml
+ec2-register $S3_BUCKET/ami/$IMAGE_NAME/$IMAGE_NAME.manifest.xml
+}
+
+function run-build-beagleboard-validation-image {
+time restore-angstrom
+#oebb bitbake beagleboard-demo-image
+time oebb bitbake minimal-image
+}
+
+function build-beagleboard-validation-image {
+run-ami $AMI_BEAGLEBOARD_VALIDATION
+remote run-build-beagleboard-validation-image
 }
 
 $*
