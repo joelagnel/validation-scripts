@@ -242,7 +242,7 @@ do
  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
  echo VOLUME_STATUS=$VOLUME_STATUS
 done
-mkdir -p $DIRNAME
+sudo mkdir -p $DIRNAME
 sudo mount $DEVICE $DIRNAME
 }
 

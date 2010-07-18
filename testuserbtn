@@ -1,0 +1,15 @@
+#!/bin/sh
+GPIO = "/sys/class/gpio"
+PIN = "4"
+echo "$PIN" > $GPIO/export
+echo "in" > $GPIO/gpio$PIN/direction
+echo "Press the USR button..."
+VAL = `cat $GPIO/gpio$PIN/value`
+while [ "$VAL" = "0" ]; do
+ VAL = `cat $GPIO/gpio$PIN/value`
+done
+echo "Release the USR button..."
+while [ "$VAL" = "1" ]; do
+ VAL = `cat $GPIO/gpio$PIN/value`
+done
+
