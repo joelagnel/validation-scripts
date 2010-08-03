@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # This file is based on:
 #  http://code.google.com/p/maemo-sdk-image/
 #  http://forum.nginx.org/read.php?26,12659,13302
@@ -20,21 +20,13 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
-AMI_BEAGLEBOARD=ami-e00de889
-AMI_BEAGLEBOARD_VALIDATION=ami-f0917a99
-#DEFAULT_AMI=$AMI_BEAGLEBOARD
-#DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
+AMI_BEAGLEBOARD_VALIDATION=ami-3b719a52
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
-#MACH_TYPE=m1.large
-#MACH_TYPE=m2.4xlarge
+# MACH_TYPEs are m1.large, m2.4xlarge, etc.
 MACH_TYPE=m1.xlarge
 USER=ubuntu
-#DOWNLOAD_EBS=vol-f0402d99
-DOWNLOAD_EBS=vol-7ca3ce15
-#ANGSTROM_EBS=vol-1adcb173
+DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
-#DOWNLOAD_DIR=$HOME/angstrom-setup-scripts/sources/downloads
-#TMPFS_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1
 DOWNLOAD_DIR=/mnt/downloads
 TMPFS_DIR=$HOME/angstrom-setup-scripts
 
@@ -150,6 +142,10 @@ sudo aptitude install sed wget cvs subversion git-core \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
  desktop-file-utils chrpath -y
 sudo aptitude install libxml2-utils xmlto python-psyco -y
+}
+
+# target local
+function install-oe {
 mkdir -p $HOME/angstrom-setup-scripts
 sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
 sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
@@ -158,7 +154,7 @@ cd $HOME/angstrom-setup-scripts
 ./oebb.sh config beagleboard
 ./oebb.sh update
 perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
-perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "3"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "4"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
 }
 
 # target local
@@ -167,21 +163,10 @@ cd $HOME/angstrom-setup-scripts
 ./oebb.sh $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
-# host-only
-function remote-oebb {
-remote oebb $1 $2 $3 $4 $5 $6 $7 $8
-}
-
-# host-only
-function build-default {
-#remote-oebb bitbake console-image
-remote-oebb bitbake beagleboard-demo-image
-}
-
 function create-download-ebs {
 # VOLUME  vol-10402d79    10              us-east-1c      creating        2010-07-14T08:21:14+0000
 #DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1c | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
-DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1b | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
+DOWNLOAD_EBS=`ec2-create-volume -s 10 -z us-east-1c | perl -ne '/^VOLUME\s+(\S+)\s+/ && print "$1"'`
 echo DOWNLOAD_EBS=$DOWNLOAD_EBS
 }
 
@@ -264,12 +249,10 @@ sudo chown ubuntu.ubuntu /mnt/angstrom
 mkdir -p $HOME/angstrom-setup-scripts
 sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
 sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
-#cp -R /mnt/angstrom/* $HOME/angstrom-setup-scripts/
 rsync -a /mnt/angstrom/* $HOME/angstrom-setup-scripts/
 }
 
 function preserve-angstrom {
-#cp -R $HOME/angstrom-setup-scripts/* /mnt/angstrom/
 rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
 }
 
@@ -281,6 +264,7 @@ sudo chown ubuntu.ubuntu $TMPFS_DIR
 
 # http://xentek.net/articles/448/installing-fuse-s3fs-and-sshfs-on-ubuntu/
 function enable-s3fuse {
+cd $HOME
 sudo aptitude install build-essential libcurl4-openssl-dev libxml2-dev libfuse-dev comerr-dev libfuse2 libidn11-dev libkadm55 libkrb5-dev libldap2-dev libselinux1-dev libsepol1-dev pkg-config fuse-utils sshfs -y
 wget http://s3fs.googlecode.com/files/s3fs-r177-source.tar.gz
 tar xzvf s3fs-r177-source.tar.gz
@@ -290,39 +274,58 @@ sudo make install
 sudo perl -pe 's/^#user_allow_other/user_allow_other/' -i.bak /etc/fuse.conf
 }
 
+function remove-s3fuse-source {
+cd $HOME
+rm -rf s3fs
+}
+
 function mount-s3 {
 sudo mkdir -p /mnt/s3
 sudo modprobe fuse
 sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o default_acl="public-read" -o allow_other /mnt/s3
 }
 
+# target local
+# takes about 16 minutes
 function bundle-vol {
-IMAGE_NAME=ec2build-`date +%Y%m%d`
+IMAGE_NAME=beagleboard-validation-`date +%Y%m%d`
 echo IMAGE_NAME=$IMAGE_NAME
-sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt -e $HOME/secret -e $DOWNLOAD_DIR -e $TMPFS_DIR -p $IMAGE_NAME
+sudo mkdir -p $DOWNLOAD_DIR
+sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
+mkdir -p $TMPFS_DIR
+sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
+sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$TMPFS_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
+ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 }
 
-function publish {
-if [ "x$1" = "x" ]; then
- IMAGE_NAME=$1
-fi
-if [ "x$IMAGE_NAME" = "x" ]; then
- IMAGE_NAME=ec2build-`date +%Y%m%d`
-fi
-ec2-register $S3_BUCKET/ami/$IMAGE_NAME/$IMAGE_NAME.manifest.xml
+function build-beagleboard-validation-ami {
+DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
+run-ami
+remote enable-oe
+remote enable-s3fuse
+remote remove-s3fuse-source
+remote enable-ec2
+remote bundle-vol
+halt-ami
 }
 
-function run-build-beagleboard-validation-image {
-time restore-angstrom
-#oebb bitbake beagleboard-demo-image
-time oebb bitbake minimal-image
+# host-only
+function run-build {
+DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
+# run-ami takes about 4 minutes
+run-ami
+# I could never get the volumes to mount in testing
+#remote restore-angstrom
+#remote mount-download-ebs
+# about 5 minutes
+remote install-oe
+# about 20 seconds
+remote oebb update commit 58527a1f8234c11ac77f2ec1e51aae9896ccb229
+remote oebb bitbake beagleboard-test-image
+remote mount-s3
+halt-ami
 }
 
-function build-beagleboard-validation-image {
-run-ami $AMI_BEAGLEBOARD_VALIDATION
-remote run-build-beagleboard-validation-image
-}
-
-$*
+time $*
 
