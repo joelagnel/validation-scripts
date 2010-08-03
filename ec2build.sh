@@ -142,6 +142,7 @@ sudo aptitude install sed wget cvs subversion git-core \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
  desktop-file-utils chrpath -y
 sudo aptitude install libxml2-utils xmlto python-psyco -y
+sudo aptitude install python-xcbgen -y
 }
 
 # target local
@@ -254,6 +255,10 @@ rsync -a /mnt/angstrom/* $HOME/angstrom-setup-scripts/
 
 function preserve-angstrom {
 rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
+}
+
+function rsync-downloads {
+rsync -a $HOME/angstrom-setup-scripts/sources/downloads/* /mnt/s3/downloads/
 }
 
 function mount-tmp {
