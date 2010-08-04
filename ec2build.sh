@@ -374,10 +374,9 @@ DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
 run-ami
 remote enable-oe
 remote enable-s3fuse
-remote remove-s3fuse-source
+remote enable-mksdimg
 remote enable-ec2
 remote bundle-vol
-remote enable-mksdimg
 halt-ami
 }
 
