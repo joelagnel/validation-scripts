@@ -315,20 +315,30 @@ remote bundle-vol
 halt-ami
 }
 
+function rsync-deploy {
+S3_DEPLOY_DIR=/mnt/s3/deploy/`date +%Y%m%d%H%M`
+mkdir -p $S3_DEPLOY_DIR
+rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/* $S3_DEPLOY_DIR
+}
+
 # host-only
 function run-build {
 DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
 # run-ami takes about 4 minutes
 run-ami
+remote mount-s3
 # I could never get the volumes to mount in testing
 #remote restore-angstrom
 #remote mount-download-ebs
 # about 5 minutes
 remote install-oe
 # about 20 seconds
-remote oebb update commit 58527a1f8234c11ac77f2ec1e51aae9896ccb229
+remote oebb update commit b0061845a60d7781f9287ae6955585485f5ba8e9
+# about 90-120 minutes
 remote oebb bitbake beagleboard-test-image
-remote mount-s3
+remote rsync-downloads
+# about 50 minutes
+remote rsync-deploy
 halt-ami
 }
 
