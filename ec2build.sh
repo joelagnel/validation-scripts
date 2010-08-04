@@ -398,7 +398,7 @@ remote mount-s3
 # about 5 minutes
 remote install-oe
 # about 20 seconds
-remote oebb update commit b0061845a60d7781f9287ae6955585485f5ba8e9
+remote oebb update commit a75370f9492ab51052921ed9a98af00518c7effd
 # about 90-120 minutes
 remote oebb bitbake beagleboard-test-image
 # about 90 seconds
