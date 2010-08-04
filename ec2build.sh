@@ -172,15 +172,15 @@ echo DOWNLOAD_EBS=$DOWNLOAD_EBS
 }
 
 function get-volume-status {
- #ec2-describe-volumes | tee $VOLUMES;
- ec2-describe-volumes > $VOLUMES;
- #VOLUME  vol-b629ccdf    200             us-east-1c      in-use
- VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+(snap\S+\s+)?+\S+\s+(\S+)/ && print "$2"' $VOLUMES`
- if [ "$VOLUME_STATUS" = "in-use" ]; then
-  #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
-  VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
- fi
- echo VOLUME_STATUS=$VOLUME_STATUS
+#ec2-describe-volumes | tee $VOLUMES;
+ec2-describe-volumes > $VOLUMES;
+#VOLUME  vol-b629ccdf    200             us-east-1c      in-use
+VOLUME_STATUS=`perl -ne '/^VOLUME\s+'${EBS_VOLUME}'\s+\S+\s+(snap\S+\s+)?+\S+\s+(\S+)/ && print "$2"' $VOLUMES`
+if [ "$VOLUME_STATUS" = "in-use" ]; then
+ #ATTACHMENT      vol-f0402d99    i-2fd61c45      /dev/sdd        attaching       2010-07-14T08:53:30+
+ VOLUME_STATUS=`perl -ne '/^ATTACHMENT\s+'${EBS_VOLUME}'\s+'${INSTANCE}'\s+\S+\s+(\S+)/ && print "$1"' $VOLUMES`
+fi
+echo VOLUME_STATUS=$VOLUME_STATUS
 }
 
 function attach-ebs-ami {
@@ -304,6 +304,71 @@ ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 }
 
+SD_IMG=beagleboard-validation-`date +%Y%m%d%H%M`.img
+VFAT_LOOP=/dev/loop1
+VFAT_TARGET=/mnt/sd_image1
+VOL_LABEL=BEAGLE
+
+MKFS_VFAT=/sbin/mkfs.vfat
+MKFS_EXT3=/sbin/mkfs.ext3
+LOSETUP=/sbin/losetup
+FDISK=/sbin/fdisk
+SFDISK=/sbin/sfdisk
+
+CYL=16
+HEADS=255
+SECTOR_SIZE=512
+SECTOR_PER_TRACK=63
+BS_SIZE=`echo $HEADS \* $SECTOR_PER_TRACK \* $SECTOR_SIZE | bc`
+BS_CNT=$CYL
+IMG_SIZE=`echo $BS_SIZE \* $BS_CNT | bc`
+FS1_OFFSET=`echo $SECTOR_SIZE \* $SECTOR_PER_TRACK | bc`
+FS1_PARTITION_SIZE=15
+FS1_SECTOR_CNT=`echo $FS1_PARTITION_SIZE \* $HEADS \* $SECTOR_PER_TRACK | bc`
+FS1_SIZE=`echo $FS1_SECTOR_CNT \* $SECTOR_SIZE | bc` 
+
+function enable-sd {
+sudo aptitude install bc -y
+sudo sh -c 'echo "${VFAT_LOOP} ${VFAT_TARGET} vfat user 0 0" >> /etc/fstab'
+sudo mkdir -p $VFAT_TARGET
+}
+
+function sd-create-image {
+sudo umount $VFAT_LOOP
+sudo $LOSETUP -d $VFAT_LOOP
+rm -f $SD_IMG $SD_IMG.gz
+dd if=/dev/zero of=$SD_IMG bs=$BS_SIZE count=$BS_CNT
+# the format for sfdisk is
+# <start>,<size>,<id>,<bootable>
+$SFDISK -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D $SD_IMG <<EOF
+,$FS1_PARTITION_SIZE,0x0c,*
+EOF
+$FDISK -l -u $SD_IMG > $SD_IMG.txt
+}
+
+function build-sd {
+mkdir -p /mnt/s3/sd/$SD_IMG
+pushd /mnt/s3/sd/$SD_IMG
+sd-create-image
+sudo $LOSETUP -v -o $FS1_OFFSET $VFAT_LOOP $SD_IMG
+sudo $MKFS_VFAT $VFAT_LOOP -n $VOL_LABEL -F 32 120456
+sudo mount $VFAT_LOOP
+DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
+cp $DEPLOY_DIR/MLO-beagleboard MLO
+cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
+cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
+cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
+cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
+cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
+FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
+md5sum $FILES > md5sum.txt
+sudo cp -R $FILES md5sum.txt $VFAT_TARGET
+sudo umount $VFAT_LOOP
+sudo $LOSETUP -d $VFAT_LOOP
+gzip -c $SD_IMG > $SD_IMG.gz
+popd
+}
+
 function build-beagleboard-validation-ami {
 DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
 run-ami
@@ -312,6 +377,7 @@ remote enable-s3fuse
 remote remove-s3fuse-source
 remote enable-ec2
 remote bundle-vol
+remote enable-mksdimg
 halt-ami
 }
 
@@ -336,6 +402,8 @@ remote install-oe
 remote oebb update commit b0061845a60d7781f9287ae6955585485f5ba8e9
 # about 90-120 minutes
 remote oebb bitbake beagleboard-test-image
+# about 90 seconds
+remote build-sd
 remote rsync-downloads
 # about 50 minutes
 remote rsync-deploy
