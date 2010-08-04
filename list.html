@@ -111,11 +111,11 @@ for(i=0; i<filex.length; i++){
 	size = filex[i].getElementsByTagName('Size')[0].firstChild.data;
 	name = filex[i].getElementsByTagName('Key')[0].firstChild.data;
 	lastmod = filex[i].getElementsByTagName('LastModified')[0].firstChild.data;
-        link = "<A HREF=\""+name+"\">"+name+"</A>";
+        link = "<A HREF=\""+name.replace(/\+/g, '%2B')+"\">"+name+"</A>";
         fileData[0] = name;
         fileData[1] = size;
         fileData[2] = lastmod;
-        fileData[3] = link.replace(/\+/g, "%2B");
+        fileData[3] = link;
 }
 fileList.sort(getSort());
 //document.write(getSort());
