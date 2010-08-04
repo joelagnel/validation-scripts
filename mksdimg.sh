@@ -17,7 +17,7 @@ SUDO=
 #
 # You need the files in $FILES and $ROOTFS_TARBALL are your current working directory
 
-FILES="MLO u-boot.bin uImage"
+FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
 
 # Usage: ./mksdimg.sh
 #
