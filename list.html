@@ -115,7 +115,7 @@ for(i=0; i<filex.length; i++){
         fileData[0] = name;
         fileData[1] = size;
         fileData[2] = lastmod;
-        fileData[3] = link;
+        fileData[3] = link.replace(/\+/g, "%2B");
 }
 fileList.sort(getSort());
 //document.write(getSort());
