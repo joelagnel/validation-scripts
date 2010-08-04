@@ -20,7 +20,7 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
-AMI_BEAGLEBOARD_VALIDATION=ami-3b719a52
+AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
 # MACH_TYPEs are m1.large, m2.4xlarge, etc.
 MACH_TYPE=m1.xlarge
@@ -33,21 +33,24 @@ TMPFS_DIR=$HOME/angstrom-setup-scripts
 THIS_FILE=$0
 
 # Clear any local vars
-AMI=
+AMI=""
+INSTANCE=""
+MACH_NAME=""
 
 # Additional parameters for initiating host
 function find-instance {
 AMI=$1
 if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
-if [ "x$INSTANCE" = "x" ];
-then
+while
+ [ "x$INSTANCE" == "x" ]
+do
  #ec2-describe-instances | tee $INSTANCES;
  ec2-describe-instances > $INSTANCES;
  INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$1"' $INSTANCES`
  MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$2";' $INSTANCES`
-fi
-echo INSTANCE=$INSTANCE;
-echo MACH_NAME=$MACH_NAME;
+done
+echo "INSTANCE=$INSTANCE";
+echo "MACH_NAME=$MACH_NAME";
 }
 
 function make-keypair {
@@ -65,14 +68,7 @@ ec2-run-instances $AMI -k $KEYPAIR
 else
 ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
 fi
-
-INSTANCE=""
-MACH_NAME=""
-while
- [ "x$INSTANCE" == "x" ]
-do
- find-instance $AMI;
-done
+find-instance $AMI
 }
 
 function authorize-ssh {
@@ -100,17 +96,13 @@ add-sshkey-ami
 ssh -i $KEYPAIR_FILE $USER@$MACH_NAME $2 $3 $4 $5 $6 $7 $8 $9
 }
 
-function copy-files {
+function remote {
 find-instance $AMI
 ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
 scp -i $KEYPAIR_FILE $EC2_CERT $USER@$MACH_NAME:secret/cert.pem
 scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY $USER@$MACH_NAME:secret/pk.pem
 scp -i $KEYPAIR_FILE $HOME/secret/setup_env.sh $USER@$MACH_NAME:secret/setup_env.sh
 scp -i $KEYPAIR_FILE $THIS_FILE $USER@$MACH_NAME:ec2build.sh
-}
-
-function remote {
-copy-files
 ssh-ami $AMI ./ec2build.sh $1 $2 $3 $4 $5 $6 $7
 }
 
@@ -369,12 +361,13 @@ gzip -c $SD_IMG > $SD_IMG.gz
 popd
 }
 
+# about 30-40 minutes
 function build-beagleboard-validation-ami {
 DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
 run-ami
 remote enable-oe
 remote enable-s3fuse
-remote enable-mksdimg
+remote enable-sd
 remote enable-ec2
 remote bundle-vol
 halt-ami
@@ -406,7 +399,7 @@ remote build-sd
 remote rsync-downloads
 # about 50 minutes
 remote rsync-deploy
-halt-ami
+#halt-ami
 }
 
 time $*
