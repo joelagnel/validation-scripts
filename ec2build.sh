@@ -345,6 +345,7 @@ function build-sd {
 sudo mkdir -p /mnt/s3/sd/$SD_IMG
 pushd /mnt/s3/sd/$SD_IMG
 sd-create-image
+DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
 sudo cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
@@ -356,7 +357,6 @@ sudo sh -c 'md5sum $FILES > md5sum.txt'
 sudo $LOSETUP -v -o $FS1_OFFSET $VFAT_LOOP $SD_IMG
 sudo $MKFS_VFAT $VFAT_LOOP -n $VOL_LABEL -F 32 120456
 sudo mount $VFAT_LOOP
-DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 sudo cp -R $FILES md5sum.txt $VFAT_TARGET/
 sudo sync
 sudo umount $VFAT_LOOP
