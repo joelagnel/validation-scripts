@@ -81,7 +81,7 @@ function createRequestObject(){
 /* The variable http will hold our new XMLHttpRequest object. */
 var http = createRequestObject(); 
 function getList(){
-	http.open('get', location.protocol+'//'+location.hostname);
+	http.open('get', location.protocol+'//'+location.hostname+'/?prefix='+location.pathname.replace(/list.html$/, '').replace(/^\//, ''));
 	http.onreadystatechange = handleList; 
 	http.send(null);
 }
@@ -96,7 +96,7 @@ function handleList(){
 		4: Finished */
 	if(http.readyState == 4){ //Finished loading the response
 		/* We have got the response from the server-side script,
-			let's see just what it was. using the responseText property of 
+			let us see just what it was. using the responseText property of 
 			the XMLHttpRequest object. */
 		var response = http.responseXML;
 
@@ -111,7 +111,7 @@ for(i=0; i<filex.length; i++){
 	size = filex[i].getElementsByTagName('Size')[0].firstChild.data;
 	name = filex[i].getElementsByTagName('Key')[0].firstChild.data;
 	lastmod = filex[i].getElementsByTagName('LastModified')[0].firstChild.data;
-        link = "<A HREF=\""+name.replace(/\+/g, '%2B')+"\">"+name+"</A>";
+        link = '<A HREF="'+location.protocol+'//'+location.hostname+'/'+name.replace(/\+/g, '%2B')+'">'+name+'</A>';
         fileData[0] = name;
         fileData[1] = size;
         fileData[2] = lastmod;
