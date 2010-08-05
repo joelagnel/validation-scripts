@@ -252,8 +252,12 @@ function preserve-angstrom {
 rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
 }
 
-function rsync-downloads {
-rsync -a $HOME/angstrom-setup-scripts/sources/downloads/* /mnt/s3/downloads/
+function rsync-downloads-to-s3 {
+rsync -a $HOME/angstrom-setup-scripts/sources/downloads /mnt/s3/downloads
+}
+
+function rsync-downloads-from-s3 {
+rsync -a /mnt/s3/downloads $HOME/angstrom-setup-scripts/sources/downloads
 }
 
 function mount-tmp {
@@ -381,29 +385,34 @@ mkdir -p $S3_DEPLOY_DIR
 rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/* $S3_DEPLOY_DIR
 }
 
+function build-image {
+# about 5 minutes
+if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
+# I could never get the EBS volumes to mount in testing
+#remote restore-angstrom
+#remote mount-download-ebs
+if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
+rsync-downloads-from-s3
+# about 20 seconds
+oebb update commit $ANGSTROM_REPO_ID
+# about 90-120 minutes
+oebb bitbake beagleboard-test-image
+# about 90 seconds
+build-sd
+# only about 5 minutes if there aren't many updates
+rsync-downloads-to-s3
+# about 50-70 minutes
+#rsync-deploy
+}
+
 # host-only
 # about 200 minutes total
 function run-build {
 DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
 # run-ami takes about 4 minutes
-run-ami
-remote mount-s3
-# I could never get the volumes to mount in testing
-#remote restore-angstrom
-#remote mount-download-ebs
-# about 5 minutes
-remote install-oe
-# about 20 seconds
-remote oebb update commit $ANGSTROM_REPO_ID
-# about 90-120 minutes
-remote oebb bitbake beagleboard-test-image
-# about 90 seconds
-remote build-sd
-# only about 5 minutes if there aren't many updates
-remote rsync-downloads
-# about 50-70 minutes
-remote rsync-deploy
-#halt-ami
+if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+remote build-image
+halt-ami
 }
 
 time $*
