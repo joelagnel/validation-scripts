@@ -20,7 +20,7 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 ANGSTROM_SCRIPT_ID=88cadd2a520fb0b6b66e5e5d1814e8f36c75e87a
-ANGSTROM_REPO_ID=b953e675336abd01c0034e2f09a5828678031455
+ANGSTROM_REPO_ID=7058b8b5dda8a6ce31e79c5253bb38789077c3ef
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
@@ -392,7 +392,7 @@ if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
 #remote restore-angstrom
 #remote mount-download-ebs
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-rsync-downloads-from-s3
+#rsync-downloads-from-s3
 # about 20 seconds
 oebb update commit $ANGSTROM_REPO_ID
 # about 90-120 minutes
@@ -400,7 +400,7 @@ oebb bitbake beagleboard-test-image
 # about 90 seconds
 build-sd
 # only about 5 minutes if there aren't many updates
-rsync-downloads-to-s3
+#rsync-downloads-to-s3
 # about 50-70 minutes
 #rsync-deploy
 }
