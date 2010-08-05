@@ -1,5 +1,5 @@
 #!/bin/sh
-led="/sys/class/leds/beagleboard\:\:"
+led="/sys/class/leds/beagleboard::"
 
 get_led_state () {
 usr0_trigger=`cat ${led}usr0/trigger | sed -e "s/^.*\[\(.*\)\].*$/\1/"`
@@ -35,9 +35,9 @@ get_led_state
 sleep 3
 
 echo "Restoring LEDs to their original state..."
-echo "$save0t" > ${led}usr0/trigger
-echo "$save1t" > ${led}usr1/trigger
 echo "$save0b" > ${led}usr0/brightness
 echo "$save1t" > ${led}usr1/brightness
+echo "$save0t" > ${led}usr0/trigger
+echo "$save1t" > ${led}usr1/trigger
 get_led_state
 
