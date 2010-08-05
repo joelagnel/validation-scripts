@@ -352,6 +352,7 @@ sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
 sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
+sudo cp /mnt/s3/scripts/list.html .
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
 sudo sh -c 'md5sum $FILES > md5sum.txt'
 sudo $LOSETUP -v -o $FS1_OFFSET $VFAT_LOOP $SD_IMG
