@@ -19,6 +19,8 @@ KEYPAIR_FILE=$HOME/secret/$KEYPAIR.txt
 INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
+ANGSTROM_SCRIPT_ID=88cadd2a520fb0b6b66e5e5d1814e8f36c75e87a
+ANGSTROM_REPO_ID=a75370f9492ab51052921ed9a98af00518c7effd
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
@@ -144,6 +146,7 @@ sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
 sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
 git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
 cd $HOME/angstrom-setup-scripts
+git checkout -b install $ANGSTROM_SCRIPT_ID
 ./oebb.sh config beagleboard
 ./oebb.sh update
 perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
@@ -321,43 +324,44 @@ FS1_SIZE=`echo $FS1_SECTOR_CNT \* $SECTOR_SIZE | bc`
 
 function enable-sd {
 sudo aptitude install bc -y
-sudo sh -c 'echo "${VFAT_LOOP} ${VFAT_TARGET} vfat user 0 0" >> /etc/fstab'
+sudo sh -c 'echo "'${VFAT_LOOP}' '${VFAT_TARGET}' vfat user 0 0" >> /etc/fstab'
 sudo mkdir -p $VFAT_TARGET
 }
 
 function sd-create-image {
 sudo umount $VFAT_LOOP
 sudo $LOSETUP -d $VFAT_LOOP
-rm -f $SD_IMG $SD_IMG.gz
-dd if=/dev/zero of=$SD_IMG bs=$BS_SIZE count=$BS_CNT
+sudo rm -f $SD_IMG $SD_IMG.gz
+sudo dd if=/dev/zero of=$SD_IMG bs=$BS_SIZE count=$BS_CNT
 # the format for sfdisk is
 # <start>,<size>,<id>,<bootable>
-$SFDISK -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D $SD_IMG <<EOF
+sudo $SFDISK -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D $SD_IMG <<EOF
 ,$FS1_PARTITION_SIZE,0x0c,*
 EOF
-$FDISK -l -u $SD_IMG > $SD_IMG.txt
+sudo sh -c ''$FDISK' -l -u '$SD_IMG' > '$SD_IMG'.txt'
 }
 
 function build-sd {
-mkdir -p /mnt/s3/sd/$SD_IMG
+sudo mkdir -p /mnt/s3/sd/$SD_IMG
 pushd /mnt/s3/sd/$SD_IMG
 sd-create-image
+sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
+sudo cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
+sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
+sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
+sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
+sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
+FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
+sudo sh -c 'md5sum $FILES > md5sum.txt'
 sudo $LOSETUP -v -o $FS1_OFFSET $VFAT_LOOP $SD_IMG
 sudo $MKFS_VFAT $VFAT_LOOP -n $VOL_LABEL -F 32 120456
 sudo mount $VFAT_LOOP
 DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
-cp $DEPLOY_DIR/MLO-beagleboard MLO
-cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
-cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
-cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
-cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
-cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
-FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
-md5sum $FILES > md5sum.txt
 sudo cp -R $FILES md5sum.txt $VFAT_TARGET/
+sudo sync
 sudo umount $VFAT_LOOP
 sudo $LOSETUP -d $VFAT_LOOP
-gzip -c $SD_IMG > $SD_IMG.gz
+sudo sh -c 'gzip -c $SD_IMG > $SD_IMG.gz'
 popd
 }
 
@@ -380,6 +384,7 @@ rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/* $
 }
 
 # host-only
+# about 200 minutes total
 function run-build {
 DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
 # run-ami takes about 4 minutes
@@ -391,13 +396,14 @@ remote mount-s3
 # about 5 minutes
 remote install-oe
 # about 20 seconds
-remote oebb update commit a75370f9492ab51052921ed9a98af00518c7effd
+remote oebb update commit $ANGSTROM_REPO_ID
 # about 90-120 minutes
 remote oebb bitbake beagleboard-test-image
 # about 90 seconds
 remote build-sd
+# only about 5 minutes if there aren't many updates
 remote rsync-downloads
-# about 50 minutes
+# about 50-70 minutes
 remote rsync-deploy
 #halt-ami
 }
