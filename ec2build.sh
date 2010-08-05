@@ -20,7 +20,7 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 ANGSTROM_SCRIPT_ID=88cadd2a520fb0b6b66e5e5d1814e8f36c75e87a
-ANGSTROM_REPO_ID=a75370f9492ab51052921ed9a98af00518c7effd
+ANGSTROM_REPO_ID=24a990c800d8b690f0ef187162dd5a9990cab865
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
@@ -300,15 +300,9 @@ ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 }
 
 SD_IMG=beagleboard-validation-`date +%Y%m%d%H%M`.img
-VFAT_LOOP=/dev/loop1
+VFAT_LOOP=/dev/loop0
 VFAT_TARGET=/mnt/sd_image1
 VOL_LABEL=BEAGLE
-
-MKFS_VFAT=/sbin/mkfs.vfat
-MKFS_EXT3=/sbin/mkfs.ext3
-LOSETUP=/sbin/losetup
-FDISK=/sbin/fdisk
-SFDISK=/sbin/sfdisk
 
 CYL=16
 HEADS=255
@@ -324,21 +318,21 @@ FS1_SIZE=`echo $FS1_SECTOR_CNT \* $SECTOR_SIZE | bc`
 
 function enable-sd {
 sudo aptitude install bc -y
-sudo sh -c 'echo "'${VFAT_LOOP}' '${VFAT_TARGET}' vfat user 0 0" >> /etc/fstab'
+#sudo sh -c 'echo "'${VFAT_LOOP}' '${VFAT_TARGET}' vfat user 0 0" >> /etc/fstab'
 sudo mkdir -p $VFAT_TARGET
 }
 
 function sd-create-image {
 sudo umount $VFAT_LOOP
-sudo $LOSETUP -d $VFAT_LOOP
-sudo rm -f $SD_IMG $SD_IMG.gz
-sudo dd if=/dev/zero of=$SD_IMG bs=$BS_SIZE count=$BS_CNT
+sudo losetup -d $VFAT_LOOP
+sudo rm -f $SD_IMG $SD_IMG.gz /tmp/$SD_IMG /tmp/$SD_IMG.gz
+sudo dd if=/dev/zero of=/tmp/$SD_IMG bs=$BS_SIZE count=$BS_CNT
 # the format for sfdisk is
 # <start>,<size>,<id>,<bootable>
-sudo $SFDISK -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D $SD_IMG <<EOF
+sudo sfdisk -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D /tmp/$SD_IMG <<EOF
 ,$FS1_PARTITION_SIZE,0x0c,*
 EOF
-sudo sh -c ''$FDISK' -l -u '$SD_IMG' > '$SD_IMG'.txt'
+sudo sh -c 'fdisk -l -u /tmp/'$SD_IMG' > '$SD_IMG'.txt'
 }
 
 function build-sd {
@@ -355,14 +349,17 @@ sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 sudo cp /mnt/s3/scripts/list.html .
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
 sudo sh -c 'md5sum '$FILES' > md5sum.txt'
-sudo $LOSETUP -v -o $FS1_OFFSET $VFAT_LOOP $SD_IMG
-sudo $MKFS_VFAT $VFAT_LOOP -n $VOL_LABEL -F 32 120456
-sudo mount $VFAT_LOOP
+sudo losetup -v -o $FS1_OFFSET $VFAT_LOOP /tmp/$SD_IMG
+sudo mkfs.vfat $VFAT_LOOP -n $VOL_LABEL -F 32 120456
+sudo mount $VFAT_LOOP $VFAT_TARGET
 sudo cp -R $FILES md5sum.txt $VFAT_TARGET/
-sudo sync
+mount
+ls -l $VFAT_TARGET/
+sudo losetup $VFAT_LOOP
 sudo umount $VFAT_LOOP
-sudo $LOSETUP -d $VFAT_LOOP
-sudo sh -c 'gzip -c '$SD_IMG' > '$SD_IMG'.gz'
+sudo losetup -d $VFAT_LOOP
+sudo sh -c 'gzip -c /tmp/'$SD_IMG' > '$SD_IMG'.gz'
+sudo sh -c 'gunzip -c '$SD_IMG'.gz > '$SD_IMG''
 popd
 }
 
