@@ -361,7 +361,7 @@ sudo cp -R $FILES md5sum.txt $VFAT_TARGET/
 sudo sync
 sudo umount $VFAT_LOOP
 sudo $LOSETUP -d $VFAT_LOOP
-sudo sh -c 'gzip -c $SD_IMG > $SD_IMG.gz'
+sudo sh -c 'gzip -c '$SD_IMG' > '$SD_IMG'.gz'
 popd
 }
 
