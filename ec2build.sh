@@ -31,6 +31,7 @@ DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
 TMPFS_DIR=$HOME/angstrom-setup-scripts
+S3_DEPLOY_DIR=/mnt/s3/deploy/`date +%Y%m%d%H%M`
 
 THIS_FILE=$0
 
@@ -340,8 +341,8 @@ sudo sh -c 'fdisk -l -u /tmp/'$SD_IMG' > '$SD_IMG'.txt'
 }
 
 function build-sd {
-sudo mkdir -p /mnt/s3/sd/$SD_IMG
-pushd /mnt/s3/sd/$SD_IMG
+sudo mkdir -p $SD_DEPLOY_DIR/sd/
+pushd $SD_DEPLOY_DIR/sd/
 sd-create-image
 DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
@@ -380,9 +381,9 @@ halt-ami
 }
 
 function rsync-deploy {
-S3_DEPLOY_DIR=/mnt/s3/deploy/`date +%Y%m%d%H%M`
 mkdir -p $S3_DEPLOY_DIR
-rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/* $S3_DEPLOY_DIR
+cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/
+rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
 }
 
 function build-image {
@@ -402,7 +403,7 @@ build-sd
 # only about 5 minutes if there aren't many updates
 #rsync-downloads-to-s3
 # about 50-70 minutes
-#rsync-deploy
+rsync-deploy
 }
 
 # host-only
