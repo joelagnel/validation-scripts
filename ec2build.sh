@@ -49,8 +49,8 @@ while
 do
  #ec2-describe-instances | tee $INSTANCES;
  ec2-describe-instances > $INSTANCES;
- INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$1"' $INSTANCES`
- MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print "$2";' $INSTANCES`
+ INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$1") && exit 0;' $INSTANCES`
+ MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$2") && exit 0;' $INSTANCES`
 done
 echo "INSTANCE=$INSTANCE";
 echo "MACH_NAME=$MACH_NAME";
@@ -341,8 +341,8 @@ sudo sh -c 'fdisk -l -u /tmp/'$SD_IMG' > '$SD_IMG'.txt'
 }
 
 function build-sd {
-sudo mkdir -p $SD_DEPLOY_DIR/sd/
-pushd $SD_DEPLOY_DIR/sd/
+sudo mkdir -p $S3_DEPLOY_DIR/sd/
+pushd $S3_DEPLOY_DIR/sd/
 sd-create-image
 DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
@@ -389,6 +389,7 @@ rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3
 function build-image {
 # about 5 minutes
 if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
+if [ ! -x $VFAT_TARGET ]; then enable-sd; fi
 # I could never get the EBS volumes to mount in testing
 #remote restore-angstrom
 #remote mount-download-ebs
@@ -407,13 +408,15 @@ rsync-deploy
 }
 
 # host-only
-# about 200 minutes total
+# about 200-250 minutes total
 function run-build {
 DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
+find-instance $DEFAULT_AMI
 # run-ami takes about 4 minutes
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+add-sshkey-ami
 remote build-image
-halt-ami
+#halt-ami
 }
 
 time $*
