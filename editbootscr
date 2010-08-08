@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 TMPFILE=/tmp/$(basename $0).$$.cmd
 
 if [ ! -e /media/mmcblk0p1/boot.scr ]; then
