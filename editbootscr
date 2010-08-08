@@ -5,7 +5,7 @@ if [ ! -e /media/mmcblk0p1/boot.scr ]; then
 mount /dev/mmcblk0p1 /media/mmcblk0p1
 fi
 
-function do_mkimage {
+do_mkimage () {
 echo Building script \""$1\"" - $2
 mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "$1" -d $TMPFILE $2
 }
