@@ -1,10 +1,16 @@
 #!/bin/sh
-TMPFILE=/tmp/$(basename $0).$$.pcm
-arecord -t wav -c 2 -r 44100 -f S16_LE -v $TMPFILE &
+sox -t nul /dev/null /tmp/sine.wav synth 1.0 sine 1000.0
+echo "Connect audio out to audio in..."
+sleep 3
+arecord -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine-in.wav &
 PID=$!
-sleep 1
 echo "Recording..."
-sleep 8
-kill -15 $PID
 sleep 1
-aplay -t wav -c 2 -r 44100 -f S16_LE -v $TMPFILE
+echo "Playing..."
+aplay -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine.wav
+sleep 1
+kill -15 $PID
+echo "Connect the audio out to speakers..."
+sleep 3
+echo "Playing..."
+aplay -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine-in.wav
