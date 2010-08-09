@@ -1,5 +1,5 @@
 #!/bin/sh
-sox -t nul /dev/null /tmp/sine.wav synth 1.0 sine 1000.0
+sox -n /tmp/sine.wav synth 1.0 sine 1000.0
 echo "Connect audio out to audio in..."
 sleep 3
 arecord -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine-in.wav &
@@ -7,10 +7,11 @@ PID=$!
 echo "Recording..."
 sleep 1
 echo "Playing..."
-aplay -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine.wav
-sleep 1
+play /tmp/sine.wav
 kill -15 $PID
+sleep 1
 echo "Connect the audio out to speakers..."
 sleep 3
 echo "Playing..."
-aplay -t wav -c 2 -r 44100 -f S16_LE -v /tmp/sine-in.wav
+play /tmp/sine-in.wav
+sox /tmp/sine-in.wav -n stat
