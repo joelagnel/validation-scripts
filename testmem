@@ -1,0 +1,3 @@
+#!/bin/sh
+memtester 360M 1
+
