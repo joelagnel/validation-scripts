@@ -42,7 +42,6 @@ MACH_NAME=""
 
 # Additional parameters for initiating host
 function find-instance {
-AMI=$1
 if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
 while
  [ "x$INSTANCE" == "x" ]
@@ -63,15 +62,21 @@ chmod 600 $KEYPAIR_FILE
 }
 
 function run-ami {
-AMI=$1
-if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
-if [ "x$MACH_TYPE" == "x" ];
-then
-ec2-run-instances $AMI -k $KEYPAIR
+if [ "x$INSTANCE" = "x" ]; then
+ if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
+ if [ "x$MACH_TYPE" == "x" ];
+ then
+ ec2-run-instances $AMI -k $KEYPAIR
+ else
+ ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
+ fi
+ find-instance
+ # give the new instance time to start up
+ sleep 10
 else
-ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
+echo "Already running instance $INSTANCE."
 fi
-find-instance $AMI
+add-sshkey-ami
 }
 
 function authorize-ssh {
@@ -79,8 +84,7 @@ ec2-authorize default -p 22
 }
 
 function add-sshkey-ami {
-AMI=$1
-find-instance $AMI
+find-instance
 mkdir -p $HOME/.ssh
 touch $HOME/.ssh/known_hosts
 chmod 644 $HOME/.ssh/known_hosts
@@ -93,14 +97,16 @@ fi
 }
 
 function ssh-ami {
-AMI=$1
-find-instance $AMI
-add-sshkey-ami
+if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
+if [ "x$INSTANCE" = "x" ]; then
+ run-ami
+ find-instance
+fi
 ssh -i $KEYPAIR_FILE $USER@$MACH_NAME $2 $3 $4 $5 $6 $7 $8 $9
 }
 
 function remote {
-find-instance $AMI
+find-instance
 ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
 scp -i $KEYPAIR_FILE $EC2_CERT $USER@$MACH_NAME:secret/cert.pem
 scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY $USER@$MACH_NAME:secret/pk.pem
@@ -110,8 +116,7 @@ ssh-ami $AMI ./ec2build.sh $1 $2 $3 $4 $5 $6 $7
 }
 
 function halt-ami {
-AMI=$1
-find-instance $AMI
+find-instance
 ec2-terminate-instances $INSTANCE;
 }
 
@@ -182,8 +187,7 @@ echo VOLUME_STATUS=$VOLUME_STATUS
 function attach-ebs-ami {
 EBS_VOLUME=$1
 DEVICE=$2
-AMI=$3
-find-instance $AMI
+find-instance
 VOLUME_STATUS=
 while
  [ ! "$VOLUME_STATUS" = "available" ]
@@ -197,8 +201,7 @@ ec2-attach-volume $EBS_VOLUME -i $INSTANCE -d $DEVICE
 function format-ebs-ami {
 EBS_VOLUME=$1
 DEVICE=$2
-AMI=$3
-find-instance $AMI
+find-instance
 VOLUME_STATUS=
 while
  [ ! "$VOLUME_STATUS" = "attached" ]
@@ -212,8 +215,7 @@ function mount-ebs-ami {
 EBS_VOLUME=$1
 DEVICE=$2
 DIRNAME=$3
-AMI=$4
-find-instance $AMI
+find-instance
 VOLUME_STATUS=
 while
  [ ! "x$VOLUME_STATUS" = "xattached" ]
@@ -254,11 +256,11 @@ rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
 }
 
 function rsync-downloads-to-s3 {
-rsync -a $HOME/angstrom-setup-scripts/sources/downloads /mnt/s3/downloads
+rsync -a $HOME/angstrom-setup-scripts/sources/downloads/ /mnt/s3/downloads
 }
 
 function rsync-downloads-from-s3 {
-rsync -a /mnt/s3/downloads $HOME/angstrom-setup-scripts/sources/downloads
+rsync -a /mnt/s3/downloads/ $HOME/angstrom-setup-scripts/sources/downloads
 }
 
 function mount-tmp {
@@ -370,7 +372,7 @@ popd
 
 # about 30-40 minutes
 function build-beagleboard-validation-ami {
-DEFAULT_AMI=$AMI_UBUNTU_10_04_64BIT
+AMI=$AMI_UBUNTU_10_04_64BIT
 run-ami
 remote enable-oe
 remote enable-s3fuse
@@ -411,14 +413,35 @@ build-sd
 rsync-deploy
 }
 
+function copy-ti-tools {
+find-instance
+scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin $USER@$MACH_NAME:angstrom-setup-scripts/sources/downloads/
+}
+
+function pull-oe {
+REMOTE_REPO=$1
+REMOTE_ID=$2
+pushd $HOME/angstrom-setup-scripts/sources/openembedded
+git remote add myrepo $1
+git remote update myrepo
+git checkout $2
+git checkout -b mybranch
+popd
+}
+
+function my-build {
+pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git f9937332a5050eb4a8fde24359e9b4935e83c26f
+oebb bitbake beagleboard-test-image
+build-sd
+}
+
 # host-only
 # about 200-250 minutes total
 function run-build {
-DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION
-find-instance $DEFAULT_AMI
+AMI=$AMI_BEAGLEBOARD_VALIDATION
+find-instance
 # run-ami takes about 4 minutes
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
-add-sshkey-ami
 remote build-image
 #halt-ami
 }
