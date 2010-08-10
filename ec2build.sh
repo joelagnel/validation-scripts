@@ -22,7 +22,7 @@ HALT="no"
 # Setup DEFAULT_AMI
 # UBUNTU_10_04_64BIT AMI is the original default, but you can seed with others
 AMI=ami-fd4aa494
-if [ -e $HOME/ec2build-validation-ami.sh ]; then source $HOME/ec2build-validation-ami.sh; fi
+if [ -e $HOME/ec2build-ami.sh ]; then source $HOME/ec2build-ami.sh; fi
 
 KEYPAIR=ec2build-keypair
 KEYPAIR_FILE=$HOME/secret/$KEYPAIR.txt
@@ -49,7 +49,7 @@ function run-build {
 if [ "x$AMI" = "xami-fd4aa494" ]; then
  build-beagleboard-validation-ami
  AMI=$NEW_AMI
- echo "AMI=$NEW_AMI" > $HOME/ec2build-validation-ami.sh
+ echo "AMI=$NEW_AMI" > $HOME/ec2build-ami.sh
 fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
 remote build-image
@@ -338,7 +338,7 @@ sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mn
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 #IMAGE  ami-954fa4fc    beagleboard-validation/beagleboard-validation-20100804.manifest.xml 283181587 744 available   private  x86_64 machine aki-0b4aa462
-NEW_AMI=`ec2-describe-images | perl -ne '/^INSTANCE\s+(\S+)\s+'${S3_BUCKET}'/'${IMAGE_NAME.manifest.xml}'\s+/ && print("$1") && exit 0;'`
+NEW_AMI=`ec2-describe-images | perl -ne '/^IMAGE\s+(\S+)\s+'${S3_BUCKET}'\/'${IMAGE_NAME}'.manifest.xml\s+/ && print("$1") && exit 0;'`
 }
 
 SD_IMG=beagleboard-validation-`date +%Y%m%d%H%M`.img
