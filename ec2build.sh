@@ -433,7 +433,7 @@ popd
 }
 
 function my-build {
-pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git f9937332a5050eb4a8fde24359e9b4935e83c26f
+pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git 19a338df1873188cb888ad818935f19e113b0fc7
 oebb bitbake beagleboard-test-image
 build-sd
 }
