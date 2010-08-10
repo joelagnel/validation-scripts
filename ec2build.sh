@@ -14,19 +14,23 @@
 #  S3_BUCKET
 source $HOME/secret/setup_env.sh
 
+# These are the git commit ids we want to use to build
+ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
+ANGSTROM_REPO_ID=7ac33686b56eac7bd5aeb072ccba4c76253a24ef
+HALT="no"
+
+# Setup DEFAULT_AMI
+# UBUNTU_10_04_64BIT AMI is the original default, but you can seed with others
+AMI=ami-fd4aa494
+if [ -e $HOME/ec2build-validation-ami.sh ]; then source $HOME/ec2build-validation-ami.sh; fi
+
 KEYPAIR=ec2build-keypair
 KEYPAIR_FILE=$HOME/secret/$KEYPAIR.txt
 INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
-ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=9eab7a12e4a94efbb53e5e43beeb67d15ae9eab5
-AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
-AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
-if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
 # MACH_TYPEs are m1.large, m2.4xlarge, etc.
 MACH_TYPE=m1.xlarge
-USER=ubuntu
 DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
@@ -36,52 +40,73 @@ S3_DEPLOY_DIR=/mnt/s3/deploy/`date +%Y%m%d%H%M`
 THIS_FILE=$0
 
 # Clear any local vars
-AMI=""
 INSTANCE=""
 MACH_NAME=""
 
-# Additional parameters for initiating host
-function find-instance {
-if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
-while
- [ "x$INSTANCE" == "x" ]
-do
- #ec2-describe-instances | tee $INSTANCES;
- ec2-describe-instances > $INSTANCES;
- INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$1") && exit 0;' $INSTANCES`
- MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$2") && exit 0;' $INSTANCES`
-done
-echo "INSTANCE=$INSTANCE";
-echo "MACH_NAME=$MACH_NAME";
+# host-only
+# about 200-250 minutes total
+function run-build {
+if [ "x$AMI" = "xami-fd4aa494" ]; then
+ build-beagleboard-validation-ami
+ AMI=$NEW_AMI
+ echo "AMI=$NEW_AMI" > $HOME/ec2build-validation-ami.sh
+fi
+if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+remote build-image
+halt-ami
 }
 
-function make-keypair {
-#ec2-delete-keypair $KEYPAIR
-ec2-add-keypair $KEYPAIR > $KEYPAIR_FILE
-chmod 600 $KEYPAIR_FILE
+# about 30-40 minutes
+function build-beagleboard-validation-ami {
+AMI=ami-fd4aa494
+run-ami
+remote enable-oe
+remote enable-s3fuse
+remote enable-sd
+remote enable-ec2
+remote bundle-vol
+halt-ami
 }
 
+function halt-ami {
+if [ "x$HALT" = "xno" ]; then
+ echo "Halt is currently disabled"
+else
+ find-instance
+ ec2-terminate-instances $INSTANCE;
+ INSTANCE=""
+fi
+}
+
+# run-ami takes about 4 minutes
 function run-ami {
-find-instance
+if [ ! -e $KEYPAIR_FILE ]; then make-keypair; fi
+if [ "x$INSTANCE" = "x" ]; then check-instance; fi
 if [ "x$INSTANCE" = "x" ]; then
- if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
- if [ "x$MACH_TYPE" == "x" ];
+ if [ "x$MACH_TYPE" = "x" ];
  then
- ec2-run-instances $AMI -k $KEYPAIR
+  ec2-run-instances $AMI -k $KEYPAIR
  else
- ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
+  ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
  fi
  # give the new instance time to start up
  sleep 10
- find-instance
  add-sshkey-ami
 else
  echo "Already running instance $INSTANCE."
 fi
 }
 
-function authorize-ssh {
-ec2-authorize default -p 22
+function check-instance {
+ec2-describe-instances > $INSTANCES;
+INSTANCE=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$1") && exit 0;' $INSTANCES`
+MACH_NAME=`perl -ne '/^INSTANCE\s+(\S+)\s+'${AMI}'\s+(\S+)\s+\S+\s+running\s+/ && print("$2") && exit 0;' $INSTANCES`
+}
+
+function make-keypair {
+#ec2-delete-keypair $KEYPAIR
+ec2-add-keypair $KEYPAIR > $KEYPAIR_FILE
+chmod 600 $KEYPAIR_FILE
 }
 
 function add-sshkey-ami {
@@ -97,28 +122,34 @@ then
 fi
 }
 
+# Additional parameters for initiating host
+function find-instance {
+while
+ [ "x$INSTANCE" == "x" ]
+do
+ check-instance
+done
+echo "INSTANCE=$INSTANCE";
+echo "MACH_NAME=$MACH_NAME";
+}
+
+function authorize-ssh {
+ec2-authorize default -p 22
+}
+
 function ssh-ami {
-if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
-if [ "x$INSTANCE" = "x" ]; then
- run-ami
- find-instance
-fi
-ssh -i $KEYPAIR_FILE $USER@$MACH_NAME $2 $3 $4 $5 $6 $7 $8 $9
+if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+ssh -i $KEYPAIR_FILE ubuntu@$MACH_NAME $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
 function remote {
-find-instance
-ssh -i $KEYPAIR_FILE $USER@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
-scp -i $KEYPAIR_FILE $EC2_CERT $USER@$MACH_NAME:secret/cert.pem
-scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY $USER@$MACH_NAME:secret/pk.pem
-scp -i $KEYPAIR_FILE $HOME/secret/setup_env.sh $USER@$MACH_NAME:secret/setup_env.sh
-scp -i $KEYPAIR_FILE $THIS_FILE $USER@$MACH_NAME:ec2build.sh
-ssh-ami $AMI ./ec2build.sh $1 $2 $3 $4 $5 $6 $7
-}
-
-function halt-ami {
-find-instance
-ec2-terminate-instances $INSTANCE;
+if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+ssh -i $KEYPAIR_FILE ubuntu@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
+scp -i $KEYPAIR_FILE $EC2_CERT ubuntu@$MACH_NAME:secret/cert.pem
+scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY ubuntu@$MACH_NAME:secret/pk.pem
+scp -i $KEYPAIR_FILE $HOME/secret/setup_env.sh ubuntu@$MACH_NAME:secret/setup_env.sh
+scp -i $KEYPAIR_FILE $THIS_FILE ubuntu@$MACH_NAME:ec2build.sh
+ssh-ami ./ec2build.sh $1 $2 $3 $4 $5 $6 $7 $8
 }
 
 # target local
@@ -306,6 +337,8 @@ sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
 sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$TMPFS_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
+#IMAGE  ami-954fa4fc    beagleboard-validation/beagleboard-validation-20100804.manifest.xml 283181587 744 available   private  x86_64 machine aki-0b4aa462
+NEW_AMI=`ec2-describe-images | perl -ne '/^INSTANCE\s+(\S+)\s+'${S3_BUCKET}'/'${IMAGE_NAME.manifest.xml}'\s+/ && print("$1") && exit 0;'`
 }
 
 SD_IMG=beagleboard-validation-`date +%Y%m%d%H%M`.img
@@ -373,22 +406,32 @@ sudo sh -c "gunzip -c $SD_IMG.gz > $SD_IMG"
 popd
 }
 
-# about 30-40 minutes
-function build-beagleboard-validation-ami {
-AMI=$AMI_UBUNTU_10_04_64BIT
-run-ami
-remote enable-oe
-remote enable-s3fuse
-remote enable-sd
-remote enable-ec2
-remote bundle-vol
-halt-ami
-}
-
 function rsync-deploy {
 mkdir -p $S3_DEPLOY_DIR
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/
 rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
+}
+
+function copy-ti-tools {
+find-instance
+scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:angstrom-setup-scripts/sources/downloads/
+}
+
+function pull-oe {
+REMOTE_REPO=$1
+REMOTE_ID=$2
+pushd $HOME/angstrom-setup-scripts/sources/openembedded
+git remote add myrepo $1
+git remote update myrepo
+git checkout $2
+git checkout -b mybranch
+popd
+}
+
+function my-build {
+pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git 19a338df1873188cb888ad818935f19e113b0fc7
+oebb bitbake beagleboard-test-image
+build-sd
 }
 
 function build-image {
@@ -414,39 +457,6 @@ build-sd
 #rsync-downloads-to-s3
 # about 50-70 minutes
 rsync-deploy
-}
-
-function copy-ti-tools {
-find-instance
-scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin $USER@$MACH_NAME:angstrom-setup-scripts/sources/downloads/
-}
-
-function pull-oe {
-REMOTE_REPO=$1
-REMOTE_ID=$2
-pushd $HOME/angstrom-setup-scripts/sources/openembedded
-git remote add myrepo $1
-git remote update myrepo
-git checkout $2
-git checkout -b mybranch
-popd
-}
-
-function my-build {
-pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git 19a338df1873188cb888ad818935f19e113b0fc7
-oebb bitbake beagleboard-test-image
-build-sd
-}
-
-# host-only
-# about 200-250 minutes total
-function run-build {
-AMI=$AMI_BEAGLEBOARD_VALIDATION
-find-instance
-# run-ami takes about 4 minutes
-if [ "x$INSTANCE" = "x" ]; then run-ami; fi
-remote build-image
-#halt-ami
 }
 
 time $*
