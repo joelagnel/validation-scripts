@@ -20,7 +20,7 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=25b7d02b89c4e84826e29f91ef40fbb34f07f066
+ANGSTROM_REPO_ID=9eab7a12e4a94efbb53e5e43beeb67d15ae9eab5
 AMI_UBUNTU_10_04_64BIT=ami-fd4aa494
 AMI_BEAGLEBOARD_VALIDATION=ami-954fa4fc
 if [ "x$DEFAULT_AMI" = "x" ]; then DEFAULT_AMI=$AMI_BEAGLEBOARD_VALIDATION; fi
@@ -62,6 +62,7 @@ chmod 600 $KEYPAIR_FILE
 }
 
 function run-ami {
+find-instance
 if [ "x$INSTANCE" = "x" ]; then
  if [ "x$AMI" = "x" ]; then AMI=$DEFAULT_AMI; fi
  if [ "x$MACH_TYPE" == "x" ];
@@ -70,13 +71,13 @@ if [ "x$INSTANCE" = "x" ]; then
  else
  ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
  fi
- find-instance
  # give the new instance time to start up
  sleep 10
+ find-instance
+ add-sshkey-ami
 else
-echo "Already running instance $INSTANCE."
+ echo "Already running instance $INSTANCE."
 fi
-add-sshkey-ami
 }
 
 function authorize-ssh {
@@ -143,6 +144,7 @@ sudo aptitude install sed wget cvs subversion git-core \
  desktop-file-utils chrpath -y
 sudo aptitude install libxml2-utils xmlto python-psyco -y
 sudo aptitude install python-xcbgen -y
+sudo aptitude install ia32-libs -y
 }
 
 # target local
@@ -353,6 +355,7 @@ sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
 sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
+sudo cp $THIS_FILE .
 sudo cp /mnt/s3/scripts/list.html .
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
 sudo sh -c "md5sum $FILES > md5sum.txt"
