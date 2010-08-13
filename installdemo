@@ -1,0 +1,34 @@
+#!/bin/sh -xv
+# Derived from mkcard.sh v0.3.beagleboard-validation-scripts.1
+# (c) Copyright 2009 Graeme Gregory <dp@xora.org.uk>
+# Licensed under terms of GPLv2
+
+for tool in dd sfdisk partx mkfs.vfat mke2fs; do
+ if ! type $tool >/dev/null 2>&1; then
+  echo "ERROR: \"$tool\" not found."
+  echo "Try 'opkg install dosfstools e2fsprogs e2fsprogs-mke2fs'"
+  exit 2
+ fi
+done
+
+function do_format {
+# TODO: should test to see SD card is > 444 cyclinders
+#SIZE=`fdisk -l $DRIVE | grep Disk | awk '{print $5}'`
+#echo DISK SIZE - $SIZE bytes
+#CYLINDERS=`echo $SIZE/255/63/512 | bc`
+CYLINDERS=444
+echo CYLINDERS - $CYLINDERS
+{
+echo ,9,0x0C,*
+echo ,,,-
+} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE
+partx /dev/mmcblk0
+sleep 3
+umount /dev/mmcblk0p1
+umount /dev/mmcblk0p2
+mke2fs -j -L "rootfs" /dev/mmcblk0p2
+}
+
+umount /dev/mmcblk0p1
+umount /dev/mmcblk0p2
+
