@@ -16,8 +16,8 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=7ac33686b56eac7bd5aeb072ccba4c76253a24ef
-HALT="no"
+ANGSTROM_REPO_ID=49ddf7eeda01a541d4bb9f25d8c756ef2d81012e
+#HALT="no"
 
 # Setup DEFAULT_AMI
 # UBUNTU_10_04_64BIT AMI is the original default, but you can seed with others
@@ -52,6 +52,7 @@ if [ "x$AMI" = "xami-fd4aa494" ]; then
  echo "AMI=$NEW_AMI" > $HOME/ec2build-ami.sh
 fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+copy-ti-tools
 remote build-image
 halt-ami
 }
@@ -386,11 +387,13 @@ sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
 sudo cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
 sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
+sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 sudo cp $THIS_FILE .
 sudo cp /mnt/s3/scripts/list.html .
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
+#FILES="MLO u-boot.bin uImage ramfs.img boot.scr user.scr"
 sudo sh -c "md5sum $FILES > md5sum.txt"
 sudo losetup -v -o $FS1_OFFSET $VFAT_LOOP /tmp/$SD_IMG
 sudo mkfs.vfat $VFAT_LOOP -n $VOL_LABEL -F 32 120456
@@ -406,14 +409,28 @@ sudo sh -c "gunzip -c $SD_IMG.gz > $SD_IMG"
 popd
 }
 
+# about 50-70 minutes
 function rsync-deploy {
 mkdir -p $S3_DEPLOY_DIR
-cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/
+cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR
+mkdir -p $S3_DEPLOY_DIR/glibc
+cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/glibc
 rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
+}
+
+function rsync-pstage-to-s3 {
+mkdir -p /mnt/s3/pstage
+if [ ! -e /mnt/s3/pstage/list.html ]; then cp /mnt/s3/scripts/list.html /mnt/s3/pstage/; fi
+rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
+}
+
+function rsync-pstage-from-s3 {
+rsync -a /mnt/s3/pstage/ $HOME/angstrom-setup-scripts/sources/pstage/
 }
 
 function copy-ti-tools {
 find-instance
+remote mkdir -p angstrom-setup-scripts/sources/downloads
 scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:angstrom-setup-scripts/sources/downloads/
 }
 
@@ -428,12 +445,6 @@ git checkout -b mybranch
 popd
 }
 
-function my-build {
-pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git 19a338df1873188cb888ad818935f19e113b0fc7
-oebb bitbake beagleboard-test-image
-build-sd
-}
-
 function build-image {
 # about 5 minutes
 if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
@@ -446,16 +457,18 @@ if [ ! -x $VFAT_TARGET ]; then enable-sd; fi
 #remote restore-angstrom
 #remote mount-download-ebs
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-#rsync-downloads-from-s3
+rsync-downloads-from-s3
+rsync-pstage-from-s3
 # about 20 seconds
-oebb update commit $ANGSTROM_REPO_ID
+#oebb update commit $ANGSTROM_REPO_ID
+pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git dbe584620c27ec398eaa6861c6834b216fc1d70a
 # about 90-120 minutes
 oebb bitbake beagleboard-test-image
 # about 90 seconds
 build-sd
 # only about 5 minutes if there aren't many updates
-#rsync-downloads-to-s3
-# about 50-70 minutes
+rsync-downloads-to-s3
+rsync-pstage-to-s3
 rsync-deploy
 }
 
