@@ -11,24 +11,20 @@ for tool in dd sfdisk partx mkfs.vfat mke2fs; do
  fi
 done
 
-function do_format {
+umount /dev/mmcblk0p1
+umount /dev/mmcblk0p2
+
 # TODO: should test to see SD card is > 444 cyclinders
 #SIZE=`fdisk -l $DRIVE | grep Disk | awk '{print $5}'`
 #echo DISK SIZE - $SIZE bytes
 #CYLINDERS=`echo $SIZE/255/63/512 | bc`
 CYLINDERS=444
 echo CYLINDERS - $CYLINDERS
-{
-echo ,9,0x0C,*
-echo ,,,-
-} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE
+sudo sfdisk -C $CYLINDERS -H 255 -S 63 -D /tmp/$SD_IMG <<EOF
+,15,0x0c,*
+,,,-
+EOF
 partx /dev/mmcblk0
-sleep 3
-umount /dev/mmcblk0p1
-umount /dev/mmcblk0p2
-mke2fs -j -L "rootfs" /dev/mmcblk0p2
-}
+#mke2fs -j -L "rootfs" /dev/mmcblk0p2
 
-umount /dev/mmcblk0p1
-umount /dev/mmcblk0p2
 
