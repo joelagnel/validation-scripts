@@ -90,8 +90,6 @@ if [ "x$INSTANCE" = "x" ]; then
  else
   ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
  fi
- # give the new instance time to start up
- sleep 10
  add-sshkey-ami
 else
  echo "Already running instance $INSTANCE."
@@ -119,6 +117,8 @@ PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts`
 if [ "x$PKEY" = "x" ]
 then
  echo "Adding $MACH_NAME to known hosts"
+ # give the new instance time to start up
+ sleep 10
  ssh-keyscan -t rsa $MACH_NAME >> $HOME/.ssh/known_hosts
 fi
 }
