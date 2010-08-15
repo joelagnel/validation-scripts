@@ -16,7 +16,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=9a515c54e0f2f06554506f919b3a2d18c403b9c8
+ANGSTROM_REPO_ID=48bd2ee153f86d36946f9ccf483d07dca1b864ec
 HALT="no"
 
 # Setup DEFAULT_AMI
