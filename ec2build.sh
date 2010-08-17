@@ -517,11 +517,11 @@ fi
 pushd sources/openembedded
 # will fail if myrepo already exits
 git remote add myrepo git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git || true
-git remote update
+# let's not die here, since we just want increase our odds of finding the right commit id
+git remote update || true
 git checkout $ANGSTROM_REPO_ID
 popd
 popd
-oebb bitbake beagleboard-$IMAGE-image
 }
 
 function build-image {
