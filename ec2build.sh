@@ -16,7 +16,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=a5dceb144318bd73ff903aff7ae8c396615e81d0
+ANGSTROM_REPO_ID=49ddf7eeda01a541d4bb9f25d8c756ef2d81012e
 HALT="no"
 
 # Setup DEFAULT_AMI
@@ -24,7 +24,6 @@ HALT="no"
 AMI=ami-fd4aa494
 if [ -e $HOME/ec2build-ami.sh ]; then source $HOME/ec2build-ami.sh; fi
 
-DATE=`date +%Y%m%d%H%M`
 KEYPAIR=ec2build-keypair
 KEYPAIR_FILE=$HOME/secret/$KEYPAIR.txt
 INSTANCES=$HOME/ec2build-instances.txt
@@ -35,8 +34,8 @@ MACH_TYPE=m1.xlarge
 DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
-OEBB_DIR=/mnt/angstrom-setup-scripts
-S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
+TMPFS_DIR=$HOME/angstrom-setup-scripts
+S3_DEPLOY_DIR=/mnt/s3/deploy/`date +%Y%m%d%H%M`
 
 THIS_FILE=$0
 
@@ -53,18 +52,9 @@ if [ "x$AMI" = "xami-fd4aa494" ]; then
  echo "AMI=$NEW_AMI" > $HOME/ec2build-ami.sh
 fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
-remote setup-oe
 copy-ti-tools
 remote build-image
 halt-ami
-}
-
-function setup-tmp {
-if [ "x$TMP" = "x" ]; then
- sudo mkdir -p /mnt/ubuntu-tmp
- sudo chown ubuntu.ubuntu /mnt/ubuntu-tmp
- TMP=/mnt/ubuntu-tmp
-fi
 }
 
 # about 30-40 minutes
@@ -73,6 +63,7 @@ AMI=ami-fd4aa494
 run-ami
 remote enable-oe
 remote enable-s3fuse
+remote enable-sd
 remote enable-ec2
 remote bundle-vol
 halt-ami
@@ -189,27 +180,22 @@ sudo aptitude install ia32-libs -y
 }
 
 # target local
-# about 5 minutes
 function install-oe {
-#mkdir -p $OEBB_DIR
-#sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
-rm -rf $HOME/.oe
-sudo rm -rf $OEBB_DIR
-sudo mkdir -p $OEBB_DIR
-sudo chown ubuntu.ubuntu $OEBB_DIR
-git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git $OEBB_DIR
-cd $OEBB_DIR
+mkdir -p $HOME/angstrom-setup-scripts
+sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
+git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
+cd $HOME/angstrom-setup-scripts
 git checkout -b install $ANGSTROM_SCRIPT_ID
 ./oebb.sh config beagleboard
 ./oebb.sh update
-perl -pe 's/^(INHERIT\s*\+=\s*"rm_work")/#$1/' -i.bak1 $OEBB_DIR/build/conf/local.conf
-perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak2 $OEBB_DIR/build/conf/local.conf
-perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "8"/' -i.bak3 $OEBB_DIR/build/conf/local.conf
+perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "4"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
 }
 
 # target local
 function oebb {
-cd $OEBB_DIR
+cd $HOME/angstrom-setup-scripts
 ./oebb.sh $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
@@ -293,31 +279,28 @@ function restore-angstrom {
 attach-ebs-ami $ANGSTROM_EBS /dev/sde
 mount-ebs-ami $ANGSTROM_EBS /dev/sde /mnt/angstrom
 sudo chown ubuntu.ubuntu /mnt/angstrom
-mkdir -p $OEBB_DIR
-sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
-sudo chown ubuntu.ubuntu $OEBB_DIR
-rsync -a /mnt/angstrom/* $OEBB_DIR/
+mkdir -p $HOME/angstrom-setup-scripts
+sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
+sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
+rsync -a /mnt/angstrom/* $HOME/angstrom-setup-scripts/
 }
 
 function preserve-angstrom {
-rsync -a $OEBB_DIR/* /mnt/angstrom/
+rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
 }
 
 function rsync-downloads-to-s3 {
-mkdir -p /mnt/s3/downloads
-cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
-rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
+rsync -a $HOME/angstrom-setup-scripts/sources/downloads/ /mnt/s3/downloads
 }
 
 function rsync-downloads-from-s3 {
-mkdir -p $OEBB_DIR/sources/downloads
-rsync -a /mnt/s3/downloads/ $OEBB_DIR/sources/downloads/
+rsync -a /mnt/s3/downloads/ $HOME/angstrom-setup-scripts/sources/downloads
 }
 
 function mount-tmp {
-mkdir -p $OEBB_DIR
-sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $OEBB_DIR
-sudo chown ubuntu.ubuntu $OEBB_DIR
+mkdir -p $TMPFS_DIR
+sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $TMPFS_DIR
+sudo chown ubuntu.ubuntu $TMPFS_DIR
 }
 
 # http://xentek.net/articles/448/installing-fuse-s3fs-and-sshfs-on-ubuntu/
@@ -340,111 +323,89 @@ rm -rf s3fs
 function mount-s3 {
 sudo mkdir -p /mnt/s3
 sudo modprobe fuse
-sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/mnt -o default_acl="public-read" -o allow_other /mnt/s3
+sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/tmp -o default_acl="public-read" -o allow_other /mnt/s3
 }
 
 # target local
 # takes about 16 minutes
 function bundle-vol {
-IMAGE_NAME=beagleboard-validation-$DATE
+IMAGE_NAME=beagleboard-validation-`date +%Y%m%d`
 echo IMAGE_NAME=$IMAGE_NAME
 sudo mkdir -p $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
-mkdir -p $OEBB_DIR
+mkdir -p $TMPFS_DIR
 sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
-sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$OEBB_DIR -p $IMAGE_NAME
+sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$TMPFS_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 #IMAGE  ami-954fa4fc    beagleboard-validation/beagleboard-validation-20100804.manifest.xml 283181587 744 available   private  x86_64 machine aki-0b4aa462
 NEW_AMI=`ec2-describe-images | perl -ne '/^IMAGE\s+(\S+)\s+'${S3_BUCKET}'\/'${IMAGE_NAME}'.manifest.xml\s+/ && print("$1") && exit 0;'`
 }
 
-function sd-create-image {
-IMG_NAME=$1
-CYL=$2
+SD_IMG=beagleboard-validation-`date +%Y%m%d%H%M`.img
+VFAT_LOOP=/dev/loop0
+VFAT_TARGET=/mnt/sd_image1
+VOL_LABEL=BEAGLE
 
-if [ ! -e `which bc` ]; then sudo aptitude install bc -y; fi
+CYL=16
+HEADS=255
+SECTOR_SIZE=512
+SECTOR_PER_TRACK=63
+BS_SIZE=`echo $HEADS \* $SECTOR_PER_TRACK \* $SECTOR_SIZE | bc`
+BS_CNT=$CYL
+IMG_SIZE=`echo $BS_SIZE \* $BS_CNT | bc`
+FS1_OFFSET=`echo $SECTOR_SIZE \* $SECTOR_PER_TRACK | bc`
 FS1_PARTITION_SIZE=15
-FS1_OFFSET=`echo 512 \* 63 | bc`
-CYL_SIZE=`echo 255 \* 63 \* 512 | bc`
-FS2_OFFSET=`echo $FS1_PARTITION_SIZE \* $CYL_SIZE | bc`
-FS2_SIZE=`echo \( $CYL \- $FS1_PARTITION_SIZE \) \* $CYL_SIZE | bc`
-IMG_SIZE=`echo $CYL \* $CYL_SIZE | bc`
+FS1_SECTOR_CNT=`echo $FS1_PARTITION_SIZE \* $HEADS \* $SECTOR_PER_TRACK | bc`
+FS1_SIZE=`echo $FS1_SECTOR_CNT \* $SECTOR_SIZE | bc` 
 
-setup-tmp
-sudo umount /dev/loop0
-sudo losetup -d /dev/loop0
-sudo rm -f $IMG_NAME $IMG_NAME.gz $TMP/$IMG_NAME $TMP/$IMG_NAME.gz
-dd if=/dev/zero of=$TMP/$IMG_NAME bs=$CYL_SIZE count=$CYL
+function enable-sd {
+sudo aptitude install bc -y
+#sudo sh -c 'echo "'${VFAT_LOOP}' '${VFAT_TARGET}' vfat user 0 0" >> /etc/fstab'
+sudo mkdir -p $VFAT_TARGET
+}
+
+function sd-create-image {
+sudo umount $VFAT_LOOP
+sudo losetup -d $VFAT_LOOP
+sudo rm -f $SD_IMG $SD_IMG.gz /tmp/$SD_IMG /tmp/$SD_IMG.gz
+sudo dd if=/dev/zero of=/tmp/$SD_IMG bs=$BS_SIZE count=$BS_CNT
 # the format for sfdisk is
 # <start>,<size>,<id>,<bootable>
-sfdisk -C $CYL -H 255 -S 63 -D $TMP/$IMG_NAME <<EOF
+sudo sfdisk -C $CYL -H $HEADS -S $SECTOR_PER_TRACK -D /tmp/$SD_IMG <<EOF
 ,$FS1_PARTITION_SIZE,0x0c,*
-,,0x83,-
 EOF
-sh -c "fdisk -C $CYL -l -u $TMP/$IMG_NAME > $IMG_NAME.txt"
+sudo sh -c 'fdisk -l -u /tmp/'$SD_IMG' > '$SD_IMG'.txt'
 }
 
 function build-sd {
-mkdir -p $S3_DEPLOY_DIR/sd/
-sudo mkdir -p /mnt/sd_image1
-sudo mkdir -p /mnt/sd_image2
+sudo mkdir -p $S3_DEPLOY_DIR/sd/
 pushd $S3_DEPLOY_DIR/sd/
-DEPLOY_DIR=$OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
-cp $DEPLOY_DIR/MLO-beagleboard MLO
-cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
-cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
-cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
-cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
-cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
-cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
-cp $DEPLOY_DIR/beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
-cp $HOME/ec2build.sh .
-cp /mnt/s3/scripts/list.html .
-
-FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
-md5sum $FILES > md5sum.txt
-
-if [ -e ramdisk.gz ]; then
- sd-create-image beagleboard-validation-$DATE.img 16
- sudo losetup -v -o $FS1_OFFSET /dev/loop0 $TMP/beagleboard-validation-$DATE.img
- sudo mkfs.vfat /dev/loop0 -n BEAGLE -F 32 120456
- sudo mount /dev/loop0 /mnt/sd_image1
- sudo cp -R $FILES md5sum.txt /mnt/sd_image1/
- #mount
- #ls -l /mnt/sd_image1/
- #sudo losetup $VFAT_LOOP
- sudo umount /dev/loop0
- sudo losetup -d /dev/loop0
- gzip -c $TMP/beagleboard-validation-$DATE.img > beagleboard-validation-$DATE.img.gz
- mv $TMP/beagleboard-validation-$DATE.img .
-fi
- 
-md5sum demo-$DATE.tar.bz2 >> md5sum.txt
- 
-if [ -e demo-$DATE.tar.bz2 ]; then
- sd-create-image beagleboard-demo-$DATE.img 444
- sudo losetup -v -o $FS1_OFFSET /dev/loop0 $TMP/beagleboard-demo-$DATE.img
- sudo mkfs.vfat /dev/loop0 -n BEAGLE -F 32 120456
- sudo mount /dev/loop0 /mnt/sd_image1
- sudo cp -R $FILES md5sum.txt /mnt/sd_image1/
- mount
- ls -l /mnt/sd_image1
- sudo losetup /dev/loop0
- sudo umount /dev/loop0
- sudo losetup -d /dev/loop0
- sudo losetup -v -o $FS2_OFFSET /dev/loop0 $TMP/beagleboard-demo-$DATE.img
- sudo mkfs.ext3 -j -L "ANGSTROM" /dev/loop0 3445942
- sudo mount /dev/loop0 /mnt/sd_image2
- sudo tar xjf demo-$DATE.tar.bz2 -C /mnt/sd_image2/
- mount
- sudo losetup /dev/loop0
- sudo umount /dev/loop0
- sudo losetup -d /dev/loop0
- gzip -c $TMP/beagleboard-demo-$DATE.img > beagleboard-demo-$DATE.img.gz
- mv $TMP/beagleboard-demo-$DATE.img .
-fi
- 
+sd-create-image
+DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
+sudo cp $DEPLOY_DIR/MLO-beagleboard MLO
+sudo cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
+sudo cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
+sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
+sudo cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
+sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
+sudo cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
+sudo cp $THIS_FILE .
+sudo cp /mnt/s3/scripts/list.html .
+FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr"
+#FILES="MLO u-boot.bin uImage ramfs.img boot.scr user.scr"
+sudo sh -c "md5sum $FILES > md5sum.txt"
+sudo losetup -v -o $FS1_OFFSET $VFAT_LOOP /tmp/$SD_IMG
+sudo mkfs.vfat $VFAT_LOOP -n $VOL_LABEL -F 32 120456
+sudo mount $VFAT_LOOP $VFAT_TARGET
+sudo cp -R $FILES md5sum.txt $VFAT_TARGET/
+mount
+ls -l $VFAT_TARGET/
+sudo losetup $VFAT_LOOP
+sudo umount $VFAT_LOOP
+sudo losetup -d $VFAT_LOOP
+sudo sh -c "gzip -c /tmp/$SD_IMG > $SD_IMG.gz"
+sudo sh -c "gunzip -c $SD_IMG.gz > $SD_IMG"
 popd
 }
 
@@ -454,70 +415,61 @@ mkdir -p $S3_DEPLOY_DIR
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR
 mkdir -p $S3_DEPLOY_DIR/glibc
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/glibc
-rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
+rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
 }
 
 function rsync-pstage-to-s3 {
 mkdir -p /mnt/s3/pstage
-cp /mnt/s3/scripts/list.html /mnt/s3/pstage/
-# The quilt-native pstage package is bad
-rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
-# TI components may have non-free licenses
-#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
-rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
+if [ ! -e /mnt/s3/pstage/list.html ]; then cp /mnt/s3/scripts/list.html /mnt/s3/pstage/; fi
+rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
 }
 
 function rsync-pstage-from-s3 {
-mkdir -p $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
-rsync -a /mnt/s3/pstage/ $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
-# The quilt-native pstage package is bad
-rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
-# TI components may have non-free licenses
-#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
+rsync -a /mnt/s3/pstage/ $HOME/angstrom-setup-scripts/sources/pstage/
 }
 
 function copy-ti-tools {
 find-instance
-remote mkdir -p $OEBB_DIR/sources/downloads
-scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
-scp -i $KEYPAIR_FILE $HOME/ti-tools/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin
+remote mkdir -p angstrom-setup-scripts/sources/downloads
+scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:angstrom-setup-scripts/sources/downloads/
 }
 
-function setup-oe {
-if [ ! -x $OEBB_DIR/oebb.sh ]; then install-oe; fi
-pushd $OEBB_DIR
+function pull-oe {
+REMOTE_REPO=$1
+REMOTE_ID=$2
+pushd $HOME/angstrom-setup-scripts/sources/openembedded
+git remote add myrepo $1
+git remote update myrepo
+git checkout $2
+git checkout -b mybranch
+popd
+}
+
+function build-image {
+# about 5 minutes
+if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
+pushd $HOME/angstrom-setup-scripts
 git checkout $ANGSTROM_SCRIPT_ID
-if [ ! -d sources/openembedded/.git ]; then
- ./oebb.sh update
-fi
-pushd sources/openembedded
-git remote add myrepo git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git
-git remote update
-git checkout $ANGSTROM_REPO_ID
+git checkout -b install
 popd
-popd
+if [ ! -x $VFAT_TARGET ]; then enable-sd; fi
 # I could never get the EBS volumes to mount in testing
 #remote restore-angstrom
 #remote mount-download-ebs
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 rsync-downloads-from-s3
-#rsync-pstage-from-s3
-# pstage of quilt-native doesn't work
-#oebb bitbake -c clean quilt-native
-}
-
-function build-image {
-setup-oe
-# about 90-120 minutes (<60 with pstage)
+rsync-pstage-from-s3
+# about 20 seconds
+#oebb update commit $ANGSTROM_REPO_ID
+pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git dbe584620c27ec398eaa6861c6834b216fc1d70a
+# about 90-120 minutes
 oebb bitbake beagleboard-test-image
-oebb bitbake beagleboard-demo-image
 # about 90 seconds
-DEPLOY_DIR=$OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
-if [ -e $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ]; then build-sd; fi
+build-sd
 # only about 5 minutes if there aren't many updates
-#rsync-downloads-to-s3
-#rsync-pstage-to-s3
-#rsync-deploy
+rsync-downloads-to-s3
+rsync-pstage-to-s3
+rsync-deploy
 }
 
 time $*
