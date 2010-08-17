@@ -17,6 +17,7 @@ source $HOME/secret/setup_env.sh
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
 ANGSTROM_REPO_ID=49ddf7eeda01a541d4bb9f25d8c756ef2d81012e
+USE_EC2="yes"
 HALT="no"
 
 # Setup DEFAULT_AMI
@@ -53,7 +54,8 @@ if [ "x$AMI" = "xami-fd4aa494" ]; then
 fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
 copy-ti-tools
-remote build-image
+remote build-image test
+remote build-image demo
 halt-ami
 }
 
@@ -150,6 +152,7 @@ scp -i $KEYPAIR_FILE $EC2_CERT ubuntu@$MACH_NAME:secret/cert.pem
 scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY ubuntu@$MACH_NAME:secret/pk.pem
 scp -i $KEYPAIR_FILE $HOME/secret/setup_env.sh ubuntu@$MACH_NAME:secret/setup_env.sh
 scp -i $KEYPAIR_FILE $THIS_FILE ubuntu@$MACH_NAME:ec2build.sh
+scp -i $KEYPAIR_FILE $THIS_FILE ubuntu@$MACH_NAME:set-threads.pl
 ssh-ami ./ec2build.sh $1 $2 $3 $4 $5 $6 $7 $8
 }
 
@@ -181,6 +184,7 @@ sudo aptitude install ia32-libs -y
 
 # target local
 function install-oe {
+export THREADS=`set-threads.pl`
 mkdir -p $HOME/angstrom-setup-scripts
 sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
 sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
@@ -446,6 +450,7 @@ popd
 }
 
 function build-image {
+IMAGE=$1
 # about 5 minutes
 if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
 pushd $HOME/angstrom-setup-scripts
@@ -463,7 +468,7 @@ rsync-pstage-from-s3
 #oebb update commit $ANGSTROM_REPO_ID
 pull-oe git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git dbe584620c27ec398eaa6861c6834b216fc1d70a
 # about 90-120 minutes
-oebb bitbake beagleboard-test-image
+oebb bitbake beagleboard-$IMAGE-image
 # about 90 seconds
 build-sd
 # only about 5 minutes if there aren't many updates
