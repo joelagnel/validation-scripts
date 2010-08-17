@@ -515,7 +515,8 @@ if [ ! -d sources/openembedded/.git ]; then
  ./oebb.sh update
 fi
 pushd sources/openembedded
-git remote add myrepo git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git
+# will fail if myrepo already exits
+git remote add myrepo git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git || true
 git remote update
 git checkout $ANGSTROM_REPO_ID
 popd
