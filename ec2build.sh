@@ -480,6 +480,7 @@ function copy-ti-tools {
 find-instance
 remote mkdir -p $OEBB_DIR/sources/downloads
 scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
+scp -i $KEYPAIR_FILE $HOME/ti-tools/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin
 }
 
 function setup-oe {

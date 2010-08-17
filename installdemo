@@ -3,6 +3,9 @@
 # (c) Copyright 2009 Graeme Gregory <dp@xora.org.uk>
 # Licensed under terms of GPLv2
 
+DEMOFS=Angstrom-Beagleboard-demo-image-glibc-ipk-2010.3-beagleboard.rootfs.tar.bz2
+DEMOURL=http://www.angstrom-distribution.org/demo/beagleboard
+
 for tool in dd sfdisk partx mkfs.vfat mke2fs; do
  if ! type $tool >/dev/null 2>&1; then
   echo "ERROR: \"$tool\" not found."
@@ -20,11 +23,19 @@ umount /dev/mmcblk0p2
 #CYLINDERS=`echo $SIZE/255/63/512 | bc`
 CYLINDERS=444
 echo CYLINDERS - $CYLINDERS
-sudo sfdisk -C $CYLINDERS -H 255 -S 63 -D /tmp/$SD_IMG <<EOF
+sfdisk -C $CYLINDERS -H 255 -S 63 -D /dev/mmcblk0 <<EOF
 ,15,0x0c,*
-,,,-
+,429,,-
 EOF
 partx /dev/mmcblk0
-#mke2fs -j -L "rootfs" /dev/mmcblk0p2
-
+sleep 3
+umount /dev/mmcblk0p2
+mke2fs -j -L "rootfs" /dev/mmcblk0p2
+mkdir -p /media/mmcblk0p2
+mount /dev/mmcblk0p2 /media/mmcblk0p2
+#wget -O - $DEMOFS | tar xjv -C /media/mmcblk0p2/
+pushd /media/mmcblk0p2
+wget $DEMOURL/$DEMOFS
+tar xjv $DEMOFS
+popd
 
