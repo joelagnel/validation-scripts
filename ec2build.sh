@@ -39,7 +39,7 @@ DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
 OEBB_DIR=/mnt/angstrom-setup-scripts
-SCRIPT_DIR=$HOME/scripts
+SCRIPT_DIR=/home/ubuntu/scripts
 S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
 
 THIS_FILE=$0
