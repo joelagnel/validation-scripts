@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-
+use Switch;
 use strict;
 
 # Hash to hold the cpu info
@@ -12,6 +12,9 @@ our($cpu_count) = 0;
 # Total number of cores
 our($total_cores) = 0;
 our($total_threads) = 1;
+
+# default thread multiplier
+our($thread_mult) = 2;
 
 # Assumes that cpu entries end with "power management"
 sub count_cores {
@@ -62,7 +65,22 @@ foreach $cpu (keys(%cpus)) {
   $total_cores += $cpus{$cpu};
 }
 
-$total_threads = $total_cores * 2;
+# parse the command line and see if a thread multiplier is set
+# ignore any other options.
+sub parse_command_line {
+  while (@ARGV) {
+    my($option) = shift(@ARGV);
+    switch ($option) {
+      case '--mult' {
+        $thread_mult = shift(@ARGV);
+      }
+    }
+  }
+}
+
+&parse_command_line();
+
+$total_threads = $total_cores * $thread_mult;
 
 print "$total_threads";
  
