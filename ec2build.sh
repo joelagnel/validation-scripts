@@ -16,7 +16,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=48bd2ee153f86d36946f9ccf483d07dca1b864ec
+ANGSTROM_REPO_ID=a5dceb144318bd73ff903aff7ae8c396615e81d0
 HALT="no"
 
 # Setup DEFAULT_AMI
@@ -35,7 +35,7 @@ MACH_TYPE=m1.xlarge
 DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
-TMPFS_DIR=$HOME/angstrom-setup-scripts
+OEBB_DIR=/mnt/angstrom-setup-scripts
 S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
 
 THIS_FILE=$0
@@ -191,22 +191,25 @@ sudo aptitude install ia32-libs -y
 # target local
 # about 5 minutes
 function install-oe {
-mkdir -p $HOME/angstrom-setup-scripts
-sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
-sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
-git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git
-cd $HOME/angstrom-setup-scripts
+#mkdir -p $OEBB_DIR
+#sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
+rm -rf $HOME/.oe
+sudo rm -rf $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
+git clone git://gitorious.org/angstrom/angstrom-setup-scripts.git $OEBB_DIR
+cd $OEBB_DIR
 git checkout -b install $ANGSTROM_SCRIPT_ID
 ./oebb.sh config beagleboard
 ./oebb.sh update
-perl -pe 's/^(INHERIT\s*\+=\s*"rm_work"/#$1/' -i.bak1 $HOME/angstrom-setup-scripts/build/conf/local.conf
-perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak2 $HOME/angstrom-setup-scripts/build/conf/local.conf
-perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "8"/' -i.bak3 $HOME/angstrom-setup-scripts/build/conf/local.conf
+perl -pe 's/^(INHERIT\s*\+=\s*"rm_work")/#$1/' -i.bak1 $OEBB_DIR/build/conf/local.conf
+perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j60"/' -i.bak2 $OEBB_DIR/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "8"/' -i.bak3 $OEBB_DIR/build/conf/local.conf
 }
 
 # target local
 function oebb {
-cd $HOME/angstrom-setup-scripts
+cd $OEBB_DIR
 ./oebb.sh $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
@@ -290,31 +293,31 @@ function restore-angstrom {
 attach-ebs-ami $ANGSTROM_EBS /dev/sde
 mount-ebs-ami $ANGSTROM_EBS /dev/sde /mnt/angstrom
 sudo chown ubuntu.ubuntu /mnt/angstrom
-mkdir -p $HOME/angstrom-setup-scripts
-sudo mount -t ramfs -o size=10G ramfs $HOME/angstrom-setup-scripts
-sudo chown ubuntu.ubuntu $HOME/angstrom-setup-scripts
-rsync -a /mnt/angstrom/* $HOME/angstrom-setup-scripts/
+mkdir -p $OEBB_DIR
+sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
+rsync -a /mnt/angstrom/* $OEBB_DIR/
 }
 
 function preserve-angstrom {
-rsync -a $HOME/angstrom-setup-scripts/* /mnt/angstrom/
+rsync -a $OEBB_DIR/* /mnt/angstrom/
 }
 
 function rsync-downloads-to-s3 {
 mkdir -p /mnt/s3/downloads
 cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
-rsync -a $HOME/angstrom-setup-scripts/sources/downloads/ /mnt/s3/downloads/
+rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
 }
 
 function rsync-downloads-from-s3 {
-mkdir -p $HOME/angstrom-setup-scripts/sources/downloads
-rsync -a /mnt/s3/downloads/ $HOME/angstrom-setup-scripts/sources/downloads/
+mkdir -p $OEBB_DIR/sources/downloads
+rsync -a /mnt/s3/downloads/ $OEBB_DIR/sources/downloads/
 }
 
 function mount-tmp {
-mkdir -p $TMPFS_DIR
-sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $TMPFS_DIR
-sudo chown ubuntu.ubuntu $TMPFS_DIR
+mkdir -p $OEBB_DIR
+sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 }
 
 # http://xentek.net/articles/448/installing-fuse-s3fs-and-sshfs-on-ubuntu/
@@ -347,9 +350,9 @@ IMAGE_NAME=beagleboard-validation-$DATE
 echo IMAGE_NAME=$IMAGE_NAME
 sudo mkdir -p $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
-mkdir -p $TMPFS_DIR
+mkdir -p $OEBB_DIR
 sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
-sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$TMPFS_DIR -p $IMAGE_NAME
+sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$OEBB_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
 #IMAGE  ami-954fa4fc    beagleboard-validation/beagleboard-validation-20100804.manifest.xml 283181587 744 available   private  x86_64 machine aki-0b4aa462
@@ -387,7 +390,7 @@ mkdir -p $S3_DEPLOY_DIR/sd/
 sudo mkdir -p /mnt/sd_image1
 sudo mkdir -p /mnt/sd_image2
 pushd $S3_DEPLOY_DIR/sd/
-DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
+DEPLOY_DIR=$OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 cp $DEPLOY_DIR/MLO-beagleboard MLO
 cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
@@ -396,7 +399,7 @@ cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $DEPLOY_DIR/beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
-cp $THIS_FILE .
+cp $HOME/ec2build.sh .
 cp /mnt/s3/scripts/list.html .
 
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
@@ -451,50 +454,53 @@ mkdir -p $S3_DEPLOY_DIR
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR
 mkdir -p $S3_DEPLOY_DIR/glibc
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR/glibc
-rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
+rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
 }
 
 function rsync-pstage-to-s3 {
 mkdir -p /mnt/s3/pstage
 cp /mnt/s3/scripts/list.html /mnt/s3/pstage/
 # The quilt-native pstage package is bad
-rm $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
+rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
 # TI components may have non-free licenses
-#rm $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/*/*ti-*
-rsync -a $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
+#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
+rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
 }
 
 function rsync-pstage-from-s3 {
-mkdir -p $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/
-rsync -a /mnt/s3/pstage/ $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/
+mkdir -p $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
+rsync -a /mnt/s3/pstage/ $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
 # The quilt-native pstage package is bad
-rm $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
+rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
 # TI components may have non-free licenses
-#rm $HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/pstage/*/*ti-*
+#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
 }
 
 function copy-ti-tools {
 find-instance
-remote mkdir -p angstrom-setup-scripts/sources/downloads
-scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:angstrom-setup-scripts/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
+remote mkdir -p $OEBB_DIR/sources/downloads
+scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
 }
 
 function setup-oe {
-if [ ! -x $HOME/angstrom-setup-scripts/oebb.sh ]; then install-oe; fi
-pushd $HOME/angstrom-setup-scripts
+if [ ! -x $OEBB_DIR/oebb.sh ]; then install-oe; fi
+pushd $OEBB_DIR
 git checkout $ANGSTROM_SCRIPT_ID
-popd
-pushd $HOME/angstrom-setup-scripts/sources/openembedded
+if [ ! -d sources/openembedded/.git ]; then
+ ./oebb.sh update
+fi
+pushd sources/openembedded
 git remote add myrepo git://gitorious.org/~Jadon/angstrom/jadon-openembedded.git
 git remote update
 git checkout $ANGSTROM_REPO_ID
+popd
 popd
 # I could never get the EBS volumes to mount in testing
 #remote restore-angstrom
 #remote mount-download-ebs
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 rsync-downloads-from-s3
-rsync-pstage-from-s3
+#rsync-pstage-from-s3
 # pstage of quilt-native doesn't work
 #oebb bitbake -c clean quilt-native
 }
@@ -505,7 +511,7 @@ setup-oe
 oebb bitbake beagleboard-test-image
 oebb bitbake beagleboard-demo-image
 # about 90 seconds
-DEPLOY_DIR=$HOME/angstrom-setup-scripts/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
+DEPLOY_DIR=$OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
 if [ -e $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ]; then build-sd; fi
 # only about 5 minutes if there aren't many updates
 #rsync-downloads-to-s3
