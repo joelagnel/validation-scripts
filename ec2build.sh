@@ -415,12 +415,12 @@ cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
 cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
-cp $DEPLOY_DIR/beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
 cp $SCRIPT_DIR/ec2build.sh .
 cp /mnt/s3/scripts/list.html .
-
+echo "ANGSTROM_SCRIPT_ID=$ANGSTROM_SCRIPT_ID" > md5sum.txt
+echo "ANGSTROM_REPO_ID=$ANGSTROM_REPO_ID" >> md5sum.txt
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
-md5sum $FILES > md5sum.txt
+md5sum $FILES >> md5sum.txt
 
 if [ "x$IMAGE" = "xtest" ]; then
  if [ -e ramdisk.gz ]; then
@@ -440,6 +440,7 @@ if [ "x$IMAGE" = "xtest" ]; then
 fi
  
 if [ "x$IMAGE" = "xdemo" ]; then
+ cp $DEPLOY_DIR/beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
  md5sum demo-$DATE.tar.bz2 >> md5sum.txt
  
  if [ -e demo-$DATE.tar.bz2 ]; then
