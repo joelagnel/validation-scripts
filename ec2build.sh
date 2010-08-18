@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=79bb649194effec83e3d8af36a3b3c2b4da48d25
+ANGSTROM_REPO_ID=c86cf566c7db81740979f5163d6cb87e1ef52b3a
 USE_EC2="yes"
 HALT="no"
 
@@ -386,8 +386,8 @@ FS2_SIZE=`echo \( $CYL \- $FS1_PARTITION_SIZE \) \* $CYL_SIZE | bc`
 IMG_SIZE=`echo $CYL \* $CYL_SIZE | bc`
 
 setup-tmp
-sudo umount /dev/loop0
-sudo losetup -d /dev/loop0
+sudo umount /dev/loop0 || true
+sudo losetup -d /dev/loop0 || true
 sudo rm -f $IMG_NAME $IMG_NAME.gz $TMP/$IMG_NAME $TMP/$IMG_NAME.gz
 dd if=/dev/zero of=$TMP/$IMG_NAME bs=$CYL_SIZE count=$CYL
 # the format for sfdisk is
@@ -417,8 +417,8 @@ cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $SCRIPT_DIR/ec2build.sh .
 cp /mnt/s3/scripts/list.html .
-echo "ANGSTROM_SCRIPT_ID=$ANGSTROM_SCRIPT_ID" > md5sum.txt
-echo "ANGSTROM_REPO_ID=$ANGSTROM_REPO_ID" >> md5sum.txt
+echo "$ANGSTROM_SCRIPT_ID  ANGSTROM_SCRIPT_ID" > md5sum.txt
+echo "$ANGSTROM_REPO_ID  ANGSTROM_REPO_ID" >> md5sum.txt
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
 md5sum $FILES >> md5sum.txt
 
