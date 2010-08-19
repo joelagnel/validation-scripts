@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=e736b1cccef436845d778acc8934a01314890517
+ANGSTROM_REPO_ID=c0dbb586591bc6611d25e712a89e57a6c2660d63
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
@@ -537,7 +537,7 @@ popd
 function build-image {
 IMAGE=$1
 setup-oe
-oebb bitbake beagleboard-$IMAGE-image
+oebb bitbake -k beagleboard-$IMAGE-image
 }
 
 time $*
