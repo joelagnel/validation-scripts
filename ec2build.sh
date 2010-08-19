@@ -18,8 +18,9 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=c86cf566c7db81740979f5163d6cb87e1ef52b3a
+ANGSTROM_REPO_ID=e736b1cccef436845d778acc8934a01314890517
 USE_EC2="yes"
+USE_PSTAGE="yes"
 HALT="no"
 
 # Setup DEFAULT_AMI
@@ -59,10 +60,12 @@ fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
 remote setup-oe
 copy-ti-tools
-#remote rsync-pstage-from-s3
+#if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
 #remote rsync-downloads-from-s3
 remote build-image test
 remote build-sd test
+#remote oebb bitbake 
+#remote oebb bitbake gnome-doc-utils-native
 remote build-image demo
 remote build-sd demo
 remote rsync-pstage-to-s3
@@ -201,6 +204,12 @@ sudo aptitude install sed wget cvs subversion git-core \
 sudo aptitude install libxml2-utils xmlto python-psyco -y
 sudo aptitude install python-xcbgen -y
 sudo aptitude install ia32-libs -y
+# hack to build autoconf
+sudo aptitude install m4 -y
+# hack to build gedit
+sudo aptitude install gnome-doc-utils -y
+# hack to build ti-msp430-chronos
+#sudo aptitude install tofrodos -y
 }
 
 # target local
