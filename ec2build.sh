@@ -41,7 +41,6 @@ ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
 OEBB_DIR=/mnt/angstrom-setup-scripts
 SCRIPT_DIR=/home/ubuntu/scripts
-S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
 
 THIS_FILE=$0
 
@@ -417,6 +416,7 @@ IMAGE=$1
 [ -z "$2" ] || DATE=$2
 
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
+S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
 mkdir -p $S3_DEPLOY_DIR/sd/
 sudo mkdir -p /mnt/sd_image1
 sudo mkdir -p /mnt/sd_image2
@@ -486,6 +486,8 @@ popd
 
 # about 50-70 minutes
 function rsync-deploy {
+[ -z "$1" ] || DATE=$1
+S3_DEPLOY_DIR=/mnt/s3/deploy/$DATE
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p $S3_DEPLOY_DIR
 cp /mnt/s3/scripts/list.html $S3_DEPLOY_DIR
