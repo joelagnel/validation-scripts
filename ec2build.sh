@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=6c82d19dd8ac75fa751e71392458e22bd350ccda
+ANGSTROM_REPO_ID=25c74adc5a71e4ac1afbf09fec08305bb7173a65
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
@@ -63,12 +63,10 @@ copy-ti-tools
 #remote rsync-downloads-from-s3
 remote build-image test
 remote build-sd test $DATE
-#remote oebb bitbake 
-#remote oebb bitbake gnome-doc-utils-native
 remote build-image demo
 remote build-sd demo $DATE
-remote rsync-pstage-to-s3
-remote rsync-downloads-to-s3
+#remote rsync-pstage-to-s3
+#remote rsync-downloads-to-s3
 halt-ami
 }
 
@@ -454,7 +452,7 @@ if [ "x$IMAGE" = "xtest" ]; then
 fi
  
 if [ "x$IMAGE" = "xdemo" ]; then
- cp $DEPLOY_DIR/beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
+ cp $DEPLOY_DIR/Beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
  md5sum demo-$DATE.tar.bz2 >> md5sum.txt
  
  if [ -e demo-$DATE.tar.bz2 ]; then
@@ -472,12 +470,41 @@ if [ "x$IMAGE" = "xdemo" ]; then
   sudo mkfs.ext3 -j -L "ANGSTROM" /dev/loop0 3445942
   sudo mount /dev/loop0 /mnt/sd_image2
   sudo tar xjf demo-$DATE.tar.bz2 -C /mnt/sd_image2/
+  pushd /mnt/sd_image2/
+  sudo perl -00pe "s/\[daemon\]\n\n/[daemon]\nTimedLoginEnable=true\nTimedLogin=root\nTimedLoginDelay=10\n\n/" -i.bak etc/gdm/custom.conf
+  sudo sh -c 'echo "boris:x:1000:1000:Boris the Beagle:/home/boris:/bin/sh" >> etc/passwd'
+  #sudo sh -c 'echo "boris:!:14841:0:99999:7:::" >> etc/shadow'
+  #sudo mkdir -p home/boris
+  #sudo chown 1000.1000 home/boris
+  sudo mkdir -p usr/share/esc-training
+  pushd usr/share/esc-training
+  sudo git clone git://git.kernel.org/pub/scm/git/git.git
+  sudo git clone git://git.denx.de/u-boot.git
+  pushd u-boot
+  sudo git remote add beagleboard-validation git://gitorious.org/beagleboard-validation/u-boot.git
+  sudo git remote update
+  popd
+  popd
+  sudo tar --no-same-owner --owner=root -xzf $OEBB_DIR/sources/downloads/demohome.tgz
+  popd
+  # opkg update
+  # opkg install nodejs linuxtag-ics
+  OETMPDIR=$OEBB_DIR/build/tmp-angstrom_2008_1/
+  OEBINDIR=$OETMPDIR/sysroots/x86_64-linux/usr/bin
+  OEIPKDIR=$OETMPDIR/deploy/glibc/ipk
+  OPKGARGS="--cache /mnt/ubuntu-tmp -o /mnt/sd_image2 -f /mnt/sd_image2/etc/opkg/opkg.conf"
+  #sudo $OEBINDIR/opkg-cl --cache /mnt/ubuntu-tmp -o /mnt/sd_image2 -f /mnt/sd_image2/etc/opkg/opkg.conf update
+  #sudo sh -c "yes | $OEBINDIR/opkg-cl $OPKGARGS install nodejs"
+  #sudo sh -c "yes | $OEBINDIR/opkg-cl $OPKGARGS install linuxtag-ics"
+  #sudo sh -c "yes | $OEBINDIR/opkg-cl $OPKGARGS install qmake2"
+  popd
   mount
   sudo losetup /dev/loop0
   sudo umount /dev/loop0
   sudo losetup -d /dev/loop0
   gzip -c $TMP/beagleboard-demo-$DATE.img > beagleboard-demo-$DATE.img.gz
   mv $TMP/beagleboard-demo-$DATE.img .
+  wget -O - http://beagleboard-validation.s3.amazonaws.com/deploy/$DATE/sd/beagleboard-demo-$DATE.img.gz?torrent > beagleboard-demo-$DATE.img.gz.torrent
  fi
 fi
  
@@ -501,7 +528,7 @@ if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p /mnt/s3/pstage
 cp /mnt/s3/scripts/list.html /mnt/s3/pstage/
 # The quilt-native pstage package is bad
-rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
+#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native* || true
 # TI components may have non-free licenses
 #rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
 rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
@@ -512,7 +539,7 @@ if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
 rsync -a /mnt/s3/pstage/ $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
 # The quilt-native pstage package is bad
-rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
+#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native* || true
 # TI components may have non-free licenses
 #rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
 }
@@ -520,8 +547,9 @@ rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native*
 function copy-ti-tools {
 find-instance
 remote mkdir -p $OEBB_DIR/sources/downloads
-scp -i $KEYPAIR_FILE $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
-scp -i $KEYPAIR_FILE $HOME/ti-tools/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin
+rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
+rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin
+rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/demohome.tgz ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/demohome.tgz
 }
 
 function setup-oe {
