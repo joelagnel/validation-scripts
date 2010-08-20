@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=c0dbb586591bc6611d25e712a89e57a6c2660d63
+ANGSTROM_REPO_ID=6c82d19dd8ac75fa751e71392458e22bd350ccda
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
@@ -63,11 +63,11 @@ copy-ti-tools
 #if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
 #remote rsync-downloads-from-s3
 remote build-image test
-remote build-sd test
+remote build-sd test $DATE
 #remote oebb bitbake 
 #remote oebb bitbake gnome-doc-utils-native
 remote build-image demo
-remote build-sd demo
+remote build-sd demo $DATE
 remote rsync-pstage-to-s3
 remote rsync-downloads-to-s3
 halt-ami
@@ -210,6 +210,10 @@ sudo aptitude install m4 -y
 sudo aptitude install gnome-doc-utils -y
 # hack to build ti-msp430-chronos
 #sudo aptitude install tofrodos -y
+# hack to build gnome-power-manager
+sudo aptitude install libtool -y
+# Per Tartarus on #oe IRC channel:
+sudo aptitude install patch libexpat-dev libbonobo2-common libncurses5-dev -y
 }
 
 # target local
@@ -410,6 +414,7 @@ sh -c "fdisk -C $CYL -l -u $TMP/$IMG_NAME > $IMG_NAME.txt"
 
 function build-sd {
 IMAGE=$1
+[ -z "$2" ] || DATE=$2
 
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p $S3_DEPLOY_DIR/sd/
@@ -417,6 +422,7 @@ sudo mkdir -p /mnt/sd_image1
 sudo mkdir -p /mnt/sd_image2
 pushd $S3_DEPLOY_DIR/sd/
 DEPLOY_DIR=$OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc/images/beagleboard
+cp /mnt/s3/scripts/list.html .
 cp $DEPLOY_DIR/MLO-beagleboard MLO
 cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
@@ -425,7 +431,6 @@ cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $SCRIPT_DIR/ec2build.sh .
-cp /mnt/s3/scripts/list.html .
 echo "$ANGSTROM_SCRIPT_ID  ANGSTROM_SCRIPT_ID" > md5sum.txt
 echo "$ANGSTROM_REPO_ID  ANGSTROM_REPO_ID" >> md5sum.txt
 FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
