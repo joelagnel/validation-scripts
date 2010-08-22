@@ -59,14 +59,14 @@ fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
 remote setup-oe
 copy-ti-tools
-#if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
-#remote rsync-downloads-from-s3
+if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
+remote rsync-downloads-from-s3
 remote build-image test
 remote build-sd test $DATE
 remote build-image demo
 remote build-sd demo $DATE
-#remote rsync-pstage-to-s3
-#remote rsync-downloads-to-s3
+remote rsync-pstage-to-s3
+remote rsync-downloads-to-s3
 halt-ami
 }
 
@@ -219,7 +219,7 @@ function install-oe {
 export THREADS=`$SCRIPT_DIR/set-threads.pl`
 #mkdir -p $OEBB_DIR
 #sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
-rm -rf $HOME/.oe
+rm -rf $HOME/.oe || true
 sudo rm -rf $OEBB_DIR
 sudo mkdir -p $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
@@ -232,6 +232,13 @@ git checkout -b install || true
 perl -pe 's/^(INHERIT\s*\+=\s*"rm_work")/#$1/' -i.bak1 $OEBB_DIR/build/conf/local.conf
 perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j16"/' -i.bak2 $OEBB_DIR/build/conf/local.conf
 perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "8"/' -i.bak3 $OEBB_DIR/build/conf/local.conf
+cat >>$OEBB_DIR/build/conf/local.conf <<EOF
+INHERIT += "oestats-client"
+OESTATS_SERVER = "tinderbox.openembedded.net"
+OESTATS_BUILDER = "ec2build"
+#PREMIRRORS_prepend = "(ftp|https?)$://.*/.*  http://beagleboard-validation.s3.amazonaws.com/downloads/"
+PSTAGE_MIRROR = "http://beagleboard-validation.s3.amazonaws.com/pstage/"
+EOF
 }
 
 # target local
@@ -335,6 +342,8 @@ if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p /mnt/s3/downloads
 cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
 rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
+rm /mnt/s3/downloads/ti_cgt* || true
+rm /mnt/s3/downloads/OMAP35x* || true
 }
 
 function rsync-downloads-from-s3 {
@@ -428,9 +437,10 @@ cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
 cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $SCRIPT_DIR/ec2build.sh .
+echo "$DATE  DATE" > md5sum.txt
 echo "$ANGSTROM_SCRIPT_ID  ANGSTROM_SCRIPT_ID" > md5sum.txt
 echo "$ANGSTROM_REPO_ID  ANGSTROM_REPO_ID" >> md5sum.txt
-FILES="MLO u-boot.bin uImage ramdisk.gz user.scr ramfs.img"
+FILES="MLO u-boot.bin uImage ramdisk.gz user.scr"
 md5sum $FILES >> md5sum.txt
 
 if [ "x$IMAGE" = "xtest" ]; then
@@ -523,14 +533,16 @@ rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/deploy/glibc $S3_DEPLOY_DIR
 }
 
 function rsync-pstage-to-s3 {
+# consider http://s3.amazonaws.com/ServEdge_pub/s3sync/README.txt
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
 mkdir -p /mnt/s3/pstage
 cp /mnt/s3/scripts/list.html /mnt/s3/pstage/
 # The quilt-native pstage package is bad
 #rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native* || true
 # TI components may have non-free licenses
-#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
+rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-* || true
 rsync -a $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/ /mnt/s3/pstage/
+rm /mnt/s3/pstage/*/*ti-* || true
 }
 
 function rsync-pstage-from-s3 {
@@ -540,7 +552,7 @@ rsync -a /mnt/s3/pstage/ $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/
 # The quilt-native pstage package is bad
 #rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*quilt-native* || true
 # TI components may have non-free licenses
-#rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-*
+rm $OEBB_DIR/build/tmp-angstrom_2008_1/pstage/*/*ti-* || true
 }
 
 function copy-ti-tools {
