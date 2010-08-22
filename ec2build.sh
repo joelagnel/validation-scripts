@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=25c74adc5a71e4ac1afbf09fec08305bb7173a65
+ANGSTROM_REPO_ID=24805033b1205acc35f8b4d75cc42f8b9c2a1b38
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
@@ -426,12 +426,11 @@ cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
 cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
 cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
-cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $SCRIPT_DIR/ec2build.sh .
 echo "$ANGSTROM_SCRIPT_ID  ANGSTROM_SCRIPT_ID" > md5sum.txt
 echo "$ANGSTROM_REPO_ID  ANGSTROM_REPO_ID" >> md5sum.txt
-FILES="MLO u-boot.bin uImage ramdisk.gz boot.scr user.scr ramfs.img"
+FILES="MLO u-boot.bin uImage ramdisk.gz user.scr ramfs.img"
 md5sum $FILES >> md5sum.txt
 
 if [ "x$IMAGE" = "xtest" ]; then
@@ -452,8 +451,9 @@ if [ "x$IMAGE" = "xtest" ]; then
 fi
  
 if [ "x$IMAGE" = "xdemo" ]; then
+ cp $DEPLOY_DIR/uboot-beagleboard-validation-boot.cmd.scr boot.scr
  cp $DEPLOY_DIR/Beagleboard-demo-image-beagleboard.tar.bz2 demo-$DATE.tar.bz2
- md5sum demo-$DATE.tar.bz2 >> md5sum.txt
+ md5sum boot.scr demo-$DATE.tar.bz2 >> md5sum.txt
  
  if [ -e demo-$DATE.tar.bz2 ]; then
   sd-create-image beagleboard-demo-$DATE.img 444
@@ -472,7 +472,7 @@ if [ "x$IMAGE" = "xdemo" ]; then
   sudo tar xjf demo-$DATE.tar.bz2 -C /mnt/sd_image2/
   pushd /mnt/sd_image2/
   sudo perl -00pe "s/\[daemon\]\n\n/[daemon]\nTimedLoginEnable=true\nTimedLogin=root\nTimedLoginDelay=10\n\n/" -i.bak etc/gdm/custom.conf
-  sudo sh -c 'echo "boris:x:1000:1000:Boris the Beagle:/home/boris:/bin/sh" >> etc/passwd'
+  #sudo sh -c 'echo "boris:x:1000:1000:Boris the Beagle:/home/boris:/bin/sh" >> etc/passwd'
   #sudo sh -c 'echo "boris:!:14841:0:99999:7:::" >> etc/shadow'
   #sudo mkdir -p home/boris
   #sudo chown 1000.1000 home/boris
@@ -486,7 +486,6 @@ if [ "x$IMAGE" = "xdemo" ]; then
   popd
   popd
   sudo tar --no-same-owner --owner=root -xzf $OEBB_DIR/sources/downloads/demohome.tgz
-  popd
   # opkg update
   # opkg install nodejs linuxtag-ics
   OETMPDIR=$OEBB_DIR/build/tmp-angstrom_2008_1/
