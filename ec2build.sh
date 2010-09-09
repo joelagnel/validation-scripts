@@ -18,7 +18,7 @@ source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
 ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=24805033b1205acc35f8b4d75cc42f8b9c2a1b38
+ANGSTROM_REPO_ID=54a3a57b99e6cb73d0be596fefe76f25a06e4ef4
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
