@@ -372,7 +372,7 @@ sudo perl -pe 's/^#user_allow_other/user_allow_other/' -i.bak /etc/fuse.conf
 
 function mount-s3 {
 sudo mkdir -p /mnt/s3
-sudo modprobe fuse
+sudo modprobe fuse || echo Maybe it is pre-built into your kernel?
 sudo s3fs beagleboard-validation -o accessKeyId=$AWS_ID -o secretAccessKey=$AWS_PASSWORD -o use_cache=/mnt -o default_acl="public-read" -o allow_other /mnt/s3
 }
 
