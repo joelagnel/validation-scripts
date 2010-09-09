@@ -21,7 +21,7 @@ ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
 ANGSTROM_REPO_ID=54a3a57b99e6cb73d0be596fefe76f25a06e4ef4
 USE_EC2="yes"
 USE_PSTAGE="yes"
-HALT="no"
+HALT="yes"
 
 # Setup DEFAULT_AMI
 # UBUNTU_10_04_64BIT AMI is the original default, but you can seed with others
@@ -35,7 +35,7 @@ INSTANCES=$HOME/ec2build-instances.txt
 VOLUMES=$HOME/ec2build-volumes.txt
 
 # MACH_TYPEs are m1.large, m2.4xlarge, etc.
-MACH_TYPE=m1.xlarge
+MACH_TYPE=m1.large
 DOWNLOAD_EBS=vol-08374961
 ANGSTROM_EBS=vol-24fa964d
 DOWNLOAD_DIR=/mnt/downloads
@@ -59,7 +59,8 @@ fi
 if [ "x$INSTANCE" = "x" ]; then run-ami; fi
 remote setup-oe
 copy-ti-tools
-if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
+# USE_PSTAGE should really impact the PSTAGE_MIRROR setting
+#if [ "x$USE_PSTAGE" = "xyes" ]; then remote rsync-pstage-from-s3; fi
 remote rsync-downloads-from-s3
 remote build-image test
 remote build-sd test $DATE
