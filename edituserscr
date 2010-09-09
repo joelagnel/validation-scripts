@@ -1,7 +1,7 @@
 #!/bin/sh
 TMPFILE=/tmp/$(basename $0).$$.cmd
 
-if [ ! -e /media/mmcblk0p1/boot.scr ]; then
+if [ ! -e /media/mmcblk0p1/user.scr ]; then
 mount /dev/mmcblk0p1 /media/mmcblk0p1
 fi
 
@@ -10,7 +10,7 @@ echo Building script \""$1\"" - $2
 mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "$1" -d $TMPFILE $2
 }
 
-dd if=/media/mmcblk0p1/boot.scr of=$TMPFILE bs=1 skip=72
+dd if=/media/mmcblk0p1/user.scr of=$TMPFILE bs=1 skip=72
 if [ x$EDITOR = x ]; then
 EDITOR=nano
 fi
@@ -19,11 +19,11 @@ cat $TMPFILE
 echo "Is this correct? [N/y] "
 read p
 if [ x$p = x'y' ]; then
-do_mkimage "Hand edited" /tmp/myboot.scr
-cp /media/mmcblk0p1/boot.scr /media/mmcblk0p1/last.scr
-echo "Replacing previous boot.scr with newly created version"
-cp /tmp/myboot.scr /media/mmcblk0p1/boot.scr
+do_mkimage "Hand edited" /tmp/myuser.scr
+cp /media/mmcblk0p1/user.scr /media/mmcblk0p1/last.scr
+echo "Replacing previous user.scr with newly created version"
+cp /tmp/myuser.scr /media/mmcblk0p1/user.scr
 else
-echo "Leaving existing boot.scr in place"
+echo "Leaving existing user.scr in place"
 fi
 

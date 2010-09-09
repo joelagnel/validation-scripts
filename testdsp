@@ -1,0 +1,5 @@
+#!/bin/sh
+modprobe dsplinkk
+cd /usr/share/ti/ti-dsplink-examples
+./loopgpp loop.out 1024 10000 0
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ ! -e /dev/video0 ]; then
+ mknod /dev/video0 c 81 0
+ chown root.video /dev/video0
+fi
+mplayer tv:/// -vo fbdev

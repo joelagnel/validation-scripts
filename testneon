@@ -1,0 +1,6 @@
+#!/bin/sh
+burn-neon &
+PID=$!
+sleep 10
+kill -15 $PID
+

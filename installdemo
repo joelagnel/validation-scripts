@@ -1,0 +1,41 @@
+#!/bin/sh -xv
+# Derived from mkcard.sh v0.3.beagleboard-validation-scripts.1
+# (c) Copyright 2009 Graeme Gregory <dp@xora.org.uk>
+# Licensed under terms of GPLv2
+
+DEMOFS=Angstrom-Beagleboard-demo-image-glibc-ipk-2010.3-beagleboard.rootfs.tar.bz2
+DEMOURL=http://www.angstrom-distribution.org/demo/beagleboard
+
+for tool in dd sfdisk partx mkfs.vfat mke2fs; do
+ if ! type $tool >/dev/null 2>&1; then
+  echo "ERROR: \"$tool\" not found."
+  echo "Try 'opkg install dosfstools e2fsprogs e2fsprogs-mke2fs'"
+  exit 2
+ fi
+done
+
+umount /dev/mmcblk0p1
+umount /dev/mmcblk0p2
+
+# TODO: should test to see SD card is > 444 cyclinders
+#SIZE=`fdisk -l $DRIVE | grep Disk | awk '{print $5}'`
+#echo DISK SIZE - $SIZE bytes
+#CYLINDERS=`echo $SIZE/255/63/512 | bc`
+CYLINDERS=444
+echo CYLINDERS - $CYLINDERS
+sfdisk -C $CYLINDERS -H 255 -S 63 -D /dev/mmcblk0 <<EOF
+,15,0x0c,*
+,429,,-
+EOF
+partx /dev/mmcblk0
+sleep 3
+umount /dev/mmcblk0p2
+mke2fs -j -L "rootfs" /dev/mmcblk0p2
+mkdir -p /media/mmcblk0p2
+mount /dev/mmcblk0p2 /media/mmcblk0p2
+#wget -O - $DEMOFS | tar xjv -C /media/mmcblk0p2/
+pushd /media/mmcblk0p2
+wget $DEMOURL/$DEMOFS
+tar xjv $DEMOFS
+popd
+
