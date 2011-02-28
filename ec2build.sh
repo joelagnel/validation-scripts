@@ -327,7 +327,8 @@ function restore-angstrom {
 attach-ebs-ami $ANGSTROM_EBS /dev/sde
 mount-ebs-ami $ANGSTROM_EBS /dev/sde /mnt/angstrom
 sudo chown ubuntu.ubuntu /mnt/angstrom
-mkdir -p $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
 rsync -a /mnt/angstrom/* $OEBB_DIR/
@@ -339,7 +340,7 @@ rsync -a $OEBB_DIR/* /mnt/angstrom/
 
 function rsync-downloads-to-s3 {
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-mkdir -p /mnt/s3/downloads
+sudo mkdir -p /mnt/s3/downloads
 cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
 rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
 rm /mnt/s3/downloads/ti_cgt* || true
@@ -348,12 +349,13 @@ rm /mnt/s3/downloads/OMAP35x* || true
 
 function rsync-downloads-from-s3 {
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-mkdir -p $OEBB_DIR/sources/downloads
+sudo mkdir -p $OEBB_DIR/sources/downloads
 rsync -a /mnt/s3/downloads/ $OEBB_DIR/sources/downloads/
 }
 
 function mount-tmp {
-mkdir -p $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
 }
@@ -383,7 +385,8 @@ IMAGE_NAME=beagleboard-validation-$DATE
 echo IMAGE_NAME=$IMAGE_NAME
 sudo mkdir -p $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
-mkdir -p $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
 sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$OEBB_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
