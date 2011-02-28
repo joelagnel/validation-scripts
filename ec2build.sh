@@ -387,7 +387,7 @@ sudo mkdir -p $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
 sudo mkdir -p $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
-sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
+sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$ || true
 sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$OEBB_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
