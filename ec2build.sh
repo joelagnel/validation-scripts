@@ -177,11 +177,11 @@ ssh-ami $SCRIPT_DIR/ec2build.sh $1 $2 $3 $4 $5 $6 $7 $8
 
 # target local
 function enable-ec2 {
-if [ ! -x `which ec2-describe-instances` ]; then
+if [ ! -e /etc/apt/sources.list.nonfree ]; then
  # These are apparently non-free apps
- sudo perl -pe 's/universe$/universe multiverse/' -i.bak /etc/apt/sources.list
- sudo aptitude install ec2-api-tools ec2-ami-tools -y
+ sudo perl -pe 's/universe$/universe multiverse/' -i.nonfree /etc/apt/sources.list
 fi
+sudo aptitude install ec2-api-tools ec2-ami-tools -y
 }
 
 # target local
