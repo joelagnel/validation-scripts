@@ -17,8 +17,8 @@ set -e
 source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
-ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=54a3a57b99e6cb73d0be596fefe76f25a06e4ef4
+ANGSTROM_SCRIPT_ID=278d8fc98115f4601dc99322e5a8ba91aea309db
+ANGSTROM_REPO_ID=7e5ea0e6826d138349c40ff296e5b86cf46fead7
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="no"
@@ -133,7 +133,7 @@ find-instance
 mkdir -p $HOME/.ssh
 touch $HOME/.ssh/known_hosts
 chmod 644 $HOME/.ssh/known_hosts
-PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts`
+PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts || true`
 if [ "x$PKEY" = "x" ]
 then
  echo "Adding $MACH_NAME to known hosts"
