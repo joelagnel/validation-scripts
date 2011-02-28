@@ -197,20 +197,15 @@ disable-dash
 sudo aptitude install sed wget cvs subversion git-core \
  coreutils unzip texi2html texinfo libsdl1.2-dev docbook-utils \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
- desktop-file-utils chrpath -y
-sudo aptitude install libxml2-utils xmlto python-psyco -y
-sudo aptitude install python-xcbgen -y
-sudo aptitude install ia32-libs -y
-# hack to build autoconf
-sudo aptitude install m4 -y
-# hack to build gedit
-sudo aptitude install gnome-doc-utils -y
-# hack to build ti-msp430-chronos
-#sudo aptitude install tofrodos -y
-# hack to build gnome-power-manager
-sudo aptitude install libtool -y
-# Per Tartarus on #oe IRC channel:
-sudo aptitude install patch libexpat-dev libbonobo2-common libncurses5-dev -y
+ desktop-file-utils chrpath \
+ libxml2-utils xmlto python-psyco \
+ python-xcbgen \
+ ia32-libs \
+ m4 \
+ gnome-doc-utils \
+ libtool \
+ patch libexpat-dev libbonobo2-common libncurses5-dev \
+ -y
 }
 
 # target local
