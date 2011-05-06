@@ -56,7 +56,7 @@ if [ "x$AMI" = "xami-fd4aa494" ]; then
  AMI=$NEW_AMI
  echo "AMI=$NEW_AMI" > $HOME/ec2build-ami.sh
 fi
-if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+run-ami
 remote setup-oe
 copy-ti-tools
 # USE_PSTAGE should really impact the PSTAGE_MIRROR setting
@@ -111,10 +111,10 @@ if [ "x$INSTANCE" = "x" ]; then
  else
   ec2-run-instances $AMI -k $KEYPAIR -t $MACH_TYPE
  fi
- add-sshkey-ami
 else
- echo "Already running instance $INSTANCE."
+ echo "Running instance $INSTANCE."
 fi
+add-sshkey-ami
 }
 
 function check-instance {
@@ -134,7 +134,7 @@ find-instance
 mkdir -p $HOME/.ssh
 touch $HOME/.ssh/known_hosts
 chmod 644 $HOME/.ssh/known_hosts
-PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts`
+PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts` || true
 if [ "x$PKEY" = "x" ]
 then
  echo "Adding $MACH_NAME to known hosts"
@@ -160,12 +160,12 @@ ec2-authorize default -p 22
 }
 
 function ssh-ami {
-if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+run-ami
 ssh -i $KEYPAIR_FILE ubuntu@$MACH_NAME $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
 function remote {
-if [ "x$INSTANCE" = "x" ]; then run-ami; fi
+run-ami
 ssh -i $KEYPAIR_FILE ubuntu@$MACH_NAME 'mkdir -p $HOME/secret; chmod 700 $HOME/secret'
 scp -i $KEYPAIR_FILE $EC2_CERT ubuntu@$MACH_NAME:secret/cert.pem
 scp -i $KEYPAIR_FILE $EC2_PRIVATE_KEY ubuntu@$MACH_NAME:secret/pk.pem
@@ -212,6 +212,7 @@ sudo aptitude install gnome-doc-utils -y
 sudo aptitude install libtool -y
 # Per Tartarus on #oe IRC channel:
 sudo aptitude install patch libexpat-dev libbonobo2-common libncurses5-dev -y
+sudo aptitude install scrollkeeper -y
 }
 
 # target local
@@ -231,8 +232,8 @@ git checkout -b install || true
 ./oebb.sh config beagleboard
 ./oebb.sh update
 perl -pe 's/^(INHERIT\s*\+=\s*"rm_work")/#$1/' -i.bak1 $OEBB_DIR/build/conf/local.conf
-perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j16"/' -i.bak2 $OEBB_DIR/build/conf/local.conf
-perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "8"/' -i.bak3 $OEBB_DIR/build/conf/local.conf
+perl -pe 's/^(#)?PARALLEL_MAKE\s*=\s*"-j\d+"/PARALLEL_MAKE = "-j6"/' -i.bak2 $OEBB_DIR/build/conf/local.conf
+perl -pe 's/BB_NUMBER_THREADS\s*=\s*"\d+"/BB_NUMBER_THREADS = "6"/' -i.bak3 $OEBB_DIR/build/conf/local.conf
 cat >>$OEBB_DIR/build/conf/local.conf <<EOF
 INHERIT += "oestats-client"
 OESTATS_SERVER = "tinderbox.openembedded.net"
@@ -345,6 +346,7 @@ cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
 rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
 rm /mnt/s3/downloads/ti_cgt* || true
 rm /mnt/s3/downloads/OMAP35x* || true
+rm /mnt/s3/downloads/xdctool* || true
 }
 
 function rsync-downloads-from-s3 {
@@ -435,7 +437,7 @@ cp $DEPLOY_DIR/MLO-beagleboard MLO
 cp $DEPLOY_DIR/u-boot-beagleboard.bin u-boot.bin
 cp $DEPLOY_DIR/uImage-beagleboard.bin uImage
 cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.ext2.gz ramdisk.gz
-cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
+#cp $DEPLOY_DIR/beagleboard-test-image-beagleboard.cpio.gz.u-boot ramfs.img
 cp $DEPLOY_DIR/uboot-beagleboard-validation-user.cmd.scr user.scr
 cp $SCRIPT_DIR/ec2build.sh .
 echo "$DATE  DATE" > md5sum.txt
@@ -560,6 +562,7 @@ function copy-ti-tools {
 find-instance
 remote mkdir -p $OEBB_DIR/sources/downloads
 rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/ti_cgt_c6000_6.1.9_setup_linux_x86.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/ti_cgt_c6000_6.1.9_setup_linux_x86.bin
+rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/xdctools_setuplinux_3_16_01_27.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/xdctools_setuplinux_3_16_01_27.bin
 rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/OMAP35x_Graphics_SDK_setuplinux_3_01_00_06.bin
 rsync -a -e "ssh -i $KEYPAIR_FILE" $HOME/ti-tools/demohome.tgz ubuntu@$MACH_NAME:$OEBB_DIR/sources/downloads/demohome.tgz
 }
