@@ -17,8 +17,8 @@ set -e
 source $HOME/secret/setup_env.sh
 
 # These are the git commit ids we want to use to build
-ANGSTROM_SCRIPT_ID=f593f1c023cd991535c748682ab21154c807385e
-ANGSTROM_REPO_ID=54a3a57b99e6cb73d0be596fefe76f25a06e4ef4
+ANGSTROM_SCRIPT_ID=278d8fc98115f4601dc99322e5a8ba91aea309db
+ANGSTROM_REPO_ID=7e5ea0e6826d138349c40ff296e5b86cf46fead7
 USE_EC2="yes"
 USE_PSTAGE="yes"
 HALT="yes"
@@ -134,7 +134,7 @@ find-instance
 mkdir -p $HOME/.ssh
 touch $HOME/.ssh/known_hosts
 chmod 644 $HOME/.ssh/known_hosts
-PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts` || true
+PKEY=`grep $MACH_NAME $HOME/.ssh/known_hosts || true`
 if [ "x$PKEY" = "x" ]
 then
  echo "Adding $MACH_NAME to known hosts"
@@ -178,11 +178,11 @@ ssh-ami $SCRIPT_DIR/ec2build.sh $1 $2 $3 $4 $5 $6 $7 $8
 
 # target local
 function enable-ec2 {
-if [ ! -x `which ec2-describe-instances` ]; then
+if [ ! -e /etc/apt/sources.list.nonfree ]; then
  # These are apparently non-free apps
- sudo perl -pe 's/universe$/universe multiverse/' -i.bak /etc/apt/sources.list
- sudo aptitude install ec2-api-tools ec2-ami-tools -y
+ sudo perl -pe 's/universe$/universe multiverse/' -i.nonfree /etc/apt/sources.list
 fi
+sudo aptitude install ec2-api-tools ec2-ami-tools -y
 }
 
 # target local
@@ -198,21 +198,15 @@ disable-dash
 sudo aptitude install sed wget cvs subversion git-core \
  coreutils unzip texi2html texinfo libsdl1.2-dev docbook-utils \
  gawk python-pysqlite2 diffstat help2man make gcc build-essential g++ \
- desktop-file-utils chrpath -y
-sudo aptitude install libxml2-utils xmlto python-psyco -y
-sudo aptitude install python-xcbgen -y
-sudo aptitude install ia32-libs -y
-# hack to build autoconf
-sudo aptitude install m4 -y
-# hack to build gedit
-sudo aptitude install gnome-doc-utils -y
-# hack to build ti-msp430-chronos
-#sudo aptitude install tofrodos -y
-# hack to build gnome-power-manager
-sudo aptitude install libtool -y
-# Per Tartarus on #oe IRC channel:
-sudo aptitude install patch libexpat-dev libbonobo2-common libncurses5-dev -y
-sudo aptitude install scrollkeeper -y
+ desktop-file-utils chrpath \
+ libxml2-utils xmlto python-psyco \
+ python-xcbgen \
+ ia32-libs \
+ m4 \
+ gnome-doc-utils \
+ libtool \
+ patch libexpat-dev libbonobo2-common libncurses5-dev \
+ -y
 }
 
 # target local
@@ -329,7 +323,8 @@ function restore-angstrom {
 attach-ebs-ami $ANGSTROM_EBS /dev/sde
 mount-ebs-ami $ANGSTROM_EBS /dev/sde /mnt/angstrom
 sudo chown ubuntu.ubuntu /mnt/angstrom
-mkdir -p $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 sudo mount -t ramfs -o size=10G ramfs $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
 rsync -a /mnt/angstrom/* $OEBB_DIR/
@@ -341,7 +336,7 @@ rsync -a $OEBB_DIR/* /mnt/angstrom/
 
 function rsync-downloads-to-s3 {
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-mkdir -p /mnt/s3/downloads
+sudo mkdir -p /mnt/s3/downloads
 cp /mnt/s3/scripts/list.html /mnt/s3/downloads/
 rsync -a $OEBB_DIR/sources/downloads/ /mnt/s3/downloads/
 rm /mnt/s3/downloads/ti_cgt* || true
@@ -351,12 +346,13 @@ rm /mnt/s3/downloads/xdctool* || true
 
 function rsync-downloads-from-s3 {
 if [ ! -x /mnt/s3/scripts/ec2build.sh ]; then mount-s3; fi
-mkdir -p $OEBB_DIR/sources/downloads
+sudo mkdir -p $OEBB_DIR/sources/downloads
 rsync -a /mnt/s3/downloads/ $OEBB_DIR/sources/downloads/
 }
 
 function mount-tmp {
-mkdir -p $OEBB_DIR
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
 sudo mount -t tmpfs -o size=30G,nr_inodes=30M,noatime,nodiratime tmpfs $OEBB_DIR
 sudo chown ubuntu.ubuntu $OEBB_DIR
 }
@@ -386,8 +382,9 @@ IMAGE_NAME=beagleboard-validation-$DATE
 echo IMAGE_NAME=$IMAGE_NAME
 sudo mkdir -p $DOWNLOAD_DIR
 sudo chown ubuntu.ubuntu $DOWNLOAD_DIR
-mkdir -p $OEBB_DIR
-sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$
+sudo mkdir -p $OEBB_DIR
+sudo chown ubuntu.ubuntu $OEBB_DIR
+sudo mv /mnt/$IMAGE_NAME $IMAGE_NAME.$$ || true
 sudo ec2-bundle-vol -c $EC2_CERT -k $EC2_PRIVATE_KEY -u $EC2_ID -r x86_64 -d /mnt -e /mnt,/home/ubuntu/secret,$DOWNLOAD_DIR,$OEBB_DIR -p $IMAGE_NAME
 ec2-upload-bundle -b $S3_BUCKET -m /mnt/$IMAGE_NAME.manifest.xml -a $AWS_ID -s $AWS_PASSWORD
 ec2-register -n $IMAGE_NAME $S3_BUCKET/$IMAGE_NAME.manifest.xml
