@@ -1,0 +1,7 @@
+writemlo=ext2load mmc 0:2 82000000 /boot/MLO;nandecc hw;nand erase.part x-loader;nand write 82000000 0 ${filesize}
+writeuboot=ext2load mmc 0:2 82000000 /boot/u-boot.bin;nandecc sw;nand erase 80000 160000;nand write 82000000 80000 160000
+writeuimage=ext2load mmc 0:2 82000000 /boot/uImage;nandecc sw;nand erase 280000 400000;nand write 82000000 280000 400000
+writeenv=setenv nandrootfstype ubifs;setenv nandroot 'ubi0:beagleboard-rootfs ubi.mtd=4';setenv uenvcmd;saveenv
+uenvcmd=mtdparts default;run writemlo;run writeuboot;run writeuimage;run writeenv;echo writing root fs after booting
+console=ttyS2,115200n8
+camera=none
