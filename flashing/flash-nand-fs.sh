@@ -4,7 +4,12 @@
 TAR_GZ_IMG=/boot/validation-c5-jun24-image-beagleboard.tar.gz
 
 if [ ! -e /dev/mtd4 ]; then
-  echo "No NAND Filesystem partition found. Aborting flashing."
+  echo "ERROR: No NAND Filesystem partition found. Aborting flashing."
+  exit 1
+fi
+
+if [ ! -e $TAR_GZ_IMG ]; then
+  echo "ERROR: No fs tar.gz file found. Please download one from Narcissus. exiting."
   exit 1
 fi
 

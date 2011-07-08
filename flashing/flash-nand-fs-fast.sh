@@ -2,7 +2,12 @@
 
 # This script is to be run from an init script once the board has booted
 if [ ! -e /dev/mtd4 ]; then
-  echo "No NAND Filesystem partition found. Aborting flashing."
+  echo "ERROR: No NAND Filesystem partition found. Aborting flashing."
+  exit 1
+fi
+
+if [ ! -e /boot/mtd4.gz ]; then
+  echo "ERROR: No NAND image to copy from. exiting."
   exit 1
 fi
 
