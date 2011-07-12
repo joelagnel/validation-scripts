@@ -1,7 +1,12 @@
 #!/bin/bash
 
 # This script is to be run from an init script once the board has booted
-TAR_GZ_IMG=/boot/validation-c5-jun24-image-beagleboard.tar.gz
+UBI_IMG=/boot/fs.ubi
+
+# These commands build a ubi image
+#
+# mkfs.ubifs -r /home/joel/nfsexport/c5-ubiformat/mount -o /home/joel/nfsexport/c5-ubiformat/fs.ubifs -m 2048 -e 129024 -c 1996
+# ubinize -o /home/joel/nfsexport/c5-ubiformat/mount/fs.ubi -m 2048 -p 128KiB -s 512 /home/joel/nfsexport/c5-ubiformat/ubinize.cfg
 
 # Determine user-button value
 echo 7 > /sys/class/gpio/unexport
@@ -28,32 +33,17 @@ if [ ! -e /dev/mtd4 ]; then
   exit 1
 fi
 
-if [ ! -e $TAR_GZ_IMG ]; then
-  echo "ERROR: No fs tar.gz file found. Please download one from Narcissus. exiting."
+if [ ! -e $UBI_IMG ]; then
+  echo "ERROR: No UBI image found on SD Card. Please download one from Narcissus. exiting."
   exit 1
 fi
-
-echo "writing to flash"
-mkdir -p /mnt/flash
 
 echo "Erasing nand"
 flash_eraseall /dev/mtd4
 
-echo "attaching"
-ubiattach /dev/ubi_ctrl -m 4
+echo "writing to flash"
+ubiformat /dev/mtd4 -s 512 -f ${UBI_IMG}
 
-echo "ubimkvol /dev/ubi0 -N beagleboard-rootfs -s 500MiB"
-ubimkvol /dev/ubi0 -N beagleboard-rootfs -s 490MiB
-
-echo "mount -t ubifs ubi0:beagleboard-rootfs /mnt/flash"
-mount -t ubifs ubi0:beagleboard-rootfs /mnt/flash
-
-cd /mnt/flash
-echo "untar"
-tar -zxvf $TAR_GZ_IMG
-cd /
-umount /mnt/flash
-ubidetach /dev/ubi_ctrl -m 4
 read -p "Done, remove card and hit enter to power off."
 poweroff
 
