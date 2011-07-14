@@ -3,7 +3,7 @@
 # This script is to be run from an init script once the board has booted
 UBI_IMG=/boot/fs.ubi
 
-USER_BUTTON_SCRIPT=/home/root/flashing/userbutton-pressed.py
+USER_BUTTON_SCRIPT=/home/root/flashing/userbutton-pressed
 # These commands build a ubi image
 #
 # mkfs.ubifs -r /home/joel/nfsexport/c5-ubiformat/mount -o /home/joel/nfsexport/c5-ubiformat/fs.ubifs -m 2048 -e 129024 -c 1996
