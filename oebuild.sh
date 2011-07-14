@@ -16,7 +16,7 @@ set -x
 set -e
 
 #FIXME: Have the script auto set this up and by look at its patch
-SCRIPT_DIR=/home/joel/repo/validation-scripts/downloads/
+SCRIPTS_DIR=/home/joel/repo/validation-scripts/
 DOWNLOAD_DIR=/home/joel/repo/validation-scripts/downloads/
 
 if [ ! -e ~/.oebuild.env ]; then
@@ -241,5 +241,35 @@ fi
  
 popd
 }
+ 
+function apply_oe_downloads {
+	mkdir -p $OEBB_DIR/sources/downloads/
+	cp $DOWNLOAD_DIR/bin/* $OEBB_DIR/sources/downloads/
+	pushd $OEBB_DIR/sources/openembedded/
+	perl -pe 's/^(SRC_URI\[cgt6xbin.md5sum\] =).*/$1 5ee5c8e573ab0a1ba1249511d4a06c27/' \
+			-i recipes/ti/ti-cgt6x_6.1.17.bb
+	perl -pe 's/^(SRC_URI\[cgt6xbin.sha256sum\] =).*/$1 0cb99e755f5d06a74db22d7c814e4dfd36aa5fcb35eeab01ddb000aef99c08c1/' \
+			-i recipes/ti/ti-cgt6x_6.1.17.bb
+	popd
+}
+
+function setup_oe {
+	if [ ! -x $OEBB_DIR/oebb.sh ]; then install-oe; fi
+	pushd $OEBB_DIR
+	git checkout $ANGSTROM_SCRIPT_ID
+	if [ ! -d sources/openembedded/.git ]; then
+	 ./oebb.sh update
+	fi
+	pushd sources/openembedded
+	git checkout $ANGSTROM_REPO_ID
+	popd
+	popd
+}
+
+function build_image {
+	setup_oe
+	apply_oe_downloads
+}
+
 time $*
 
