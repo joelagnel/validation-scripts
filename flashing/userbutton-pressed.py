@@ -10,9 +10,10 @@ inputEventSize = 16
  
 file = open(inputDevice, "rb") # standard binary file input
 event = file.read(inputEventSize)
-while event:
+if event:
   (time1, time2, type, code, value) = struct.unpack(inputEventFormat, event)
   if type == 1 and code == 276 and value == 1:
-     print "User button pressed!"
-  event = file.read(inputEventSize)
+     print "1"
+  else
+     print "0"
 file.close()
