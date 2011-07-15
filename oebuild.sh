@@ -241,6 +241,12 @@ fi
  
 popd
 }
+
+function build_package {
+	pushd $OEBB_DIR
+	MACHINE=beagleboard ./oebb.sh bitbake $1
+	popd
+}
  
 function apply_oe_downloads {
 	mkdir -p $OEBB_DIR/sources/downloads/
@@ -269,6 +275,7 @@ function setup_oe {
 function build_image {
 	setup_oe
 	apply_oe_downloads
+	build_package beagleboard-validation-gnome-image
 }
 
 time $*
