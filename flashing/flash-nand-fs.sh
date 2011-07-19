@@ -3,7 +3,6 @@
 # This script is to be run from an init script once the board has booted
 UBI_IMG=/boot/fs.ubi
 
-USER_BUTTON_SCRIPT=/usr/bin/userbutton-pressed
 # These commands build a ubi image
 #
 # mkfs.ubifs -r /home/joel/nfsexport/c5-ubiformat/mount -o /home/joel/nfsexport/c5-ubiformat/fs.ubifs -m 2048 -e 129024 -c 1996
@@ -11,7 +10,17 @@ USER_BUTTON_SCRIPT=/usr/bin/userbutton-pressed
 
 # Determine user-button value
 
-USER_BUTTON_PRESSED=$(${USER_BUTTON_SCRIPT})
+function is_userbutton_pressed {
+	for param in $(cat /proc/cmdline) ; do
+		if [ "$param" = "userbutton_pressed" ] ; then
+			echo 1
+			return
+		fi
+	done
+	echo 0
+}
+
+USER_BUTTON_PRESSED=$(is_userbutton_pressed)
 
 if [ "x$USER_BUTTON_PRESSED" = "x0" ]; then
   echo "User button not pressed, not flashing NAND"
