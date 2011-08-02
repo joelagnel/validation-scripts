@@ -1,0 +1,73 @@
+# Shared config options for the narcissus host
+
+export DISTRO="Angstrom"
+export DISTRO_VERSION="$(date '+%Y.%m')-narcissus"
+export TARGET_VENDOR="angstrom"
+
+export COMPANY="Angstrom"
+
+export WORKDIR="${PWD}"
+
+export PATH=${WORKDIR}/bin:${PATH}
+
+export CACHEDIR="$(readlink -f ${PWD}/cache)"
+export CACHEDIRIPK="${CACHEDIR}/ipk"
+
+export TARGET_DIR="${WORKDIR}/work/${MACHINE}/${IMAGENAME}"
+
+export UBIFS_TMP_DIR="${TARGET_DIR}-ubi-tmp"
+
+# Choose between pseudo and fakeroot
+export PSEUDO_LOCALSTATEDIR="${TARGET_DIR}-pseudo"
+export PSEUDO_BINDIR=${WORKDIR}/bin
+export PSEUDO_LIBDIR=${WORKDIR}/lib/pseudo/lib
+export PSEUDO_PREFIX=/bin
+export PSEUDO_LOCALSTATEDIR=${PSEUDO_LOCALSTATEDIR}
+export PSEUDO_NOSYMLINKEXP=1
+export LD_LIBRARY_PATH=${WORKDIR}/lib/pseudo/lib:${WORKDIR}/lib/pseudo/lib64:$LD_LIBRARY_PATH
+export PSEUDO_DISABLED=1
+export FAKEROOT="pseudo"
+#export FAKEROOT="fakeroot"
+
+export D="${TARGET_DIR}"
+
+export OFFLINE_ROOT="${TARGET_DIR}"
+export IPKG_OFFLINE_ROOT="${TARGET_DIR}"
+export OPKG_OFFLINE_ROOT="${TARGET_DIR}"
+
+export OPKG_TMP_DIR="${TARGET_DIR}-tmp"
+
+export OPKG_CONFDIR_TARGET="${TARGET_DIR}/etc/opkg"
+export PACKAGELISTFILE="${PWD}/work/${MACHINE}/${IMAGENAME}-packages.txt"
+
+export IMAGE_ROOTFS="${TARGET_DIR}"
+
+# 64MB is the default
+export ROOTFS_SIZE="65536"
+
+# SDK stuff
+
+export datadir="/usr/share"
+export includedir="/usr/include"
+export libdir="/usr/lib"
+export bindir="/usr/bin"
+export sysconfdir="/etc"
+
+export SDK_DIR="${WORKDIR}/work/${MACHINE}/${IMAGENAME}"
+export SDK_OUTPUT="${SDK_DIR}/image"
+export SDK_OUTPUT2="${SDK_DIR}/image-extras"
+export SDKPATH="/usr/local/angstrom"
+
+export OPKGCONF_TARGET="${TARGET_DIR}/etc/opkg.conf"
+export OPKGCONF_SDK="${TARGET_DIR}/etc/opkg-sdk.conf"
+
+if [ -e ${CACHEDIRIPK} ] ; then
+    CACHE="--cache ${CACHEDIRIPK}"
+fi
+
+export OPKG_HOST="opkg-cl ${CACHE} -f ${OPKGCONF_SDK} -o ${SDK_OUTPUT}"
+
+# Proxy config
+#export http_proxy=http://proxy.foo.com:80
+
+
