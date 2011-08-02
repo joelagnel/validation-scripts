@@ -17,6 +17,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 set -x
+set -e
 
 SCRIPTDIR="$( cd "$( dirname "$0" )" && pwd )"
 WORKDIR=$SCRIPTDIR
@@ -26,14 +27,18 @@ MACHINE=beagleboard
 
 IMAGENAME=test
 
+rm  $TARGETDIR/../* || true
+rm -rf $TARGETDIR/*
+rm -rf $SCRIPTDIR/temp && mkdir $SCRIPTDIR/temp && cd $SCRIPTDIR/temp
+
 function do_sdimg() 
 {
-	if [ ! -e $INPUTDIR/${IMAGENAME}-${MACHINE}.tar.gz ]; then
+	if [ ! -e $INPUTDIR/*${MACHINE}*tar* ]; then
 		echo "FATAL: Source tar ball not found"
 		exit
 	fi
 
-	if [ ! -e $INPUTDIR/${IMAGENAME}-${MACHINE}.ubi ]; then
+	if [ ! -e $INPUTDIR/*${MACHINE}*.ubi ]; then
 		echo "FATAL: Source UBIFS image not found"
 		exit
 	fi
@@ -69,6 +74,10 @@ if [ -e ${WORKDIR}/conf/${MACHINE}/sd ] ; then
 
 		LOOP_DEV="/dev/loop1"
 		LOOP_DEV_FS="/dev/loop2"
+		umount ${LOOP_DEV} || true
+		umount ${LOOP_DEV_FS} || true
+		/sbin/losetup -d ${LOOP_DEV} || true
+		/sbin/losetup -d ${LOOP_DEV_FS} || true
 
 		echo ""
 
@@ -102,40 +111,40 @@ if [ -e ${WORKDIR}/conf/${MACHINE}/sd ] ; then
 		else
 			rm -f /mnt/narcissus/sd_image1/MLO		
 		fi
-		if [ -e ${TARGET_DIR}/boot/u-boot-*.bin ] ;then
-			cp -v ${TARGET_DIR}/boot/u-boot-*.bin /mnt/narcissus/sd_image1/u-boot.bin
-			echo "Copied u-boot from /boot"
-		else
-			cp -v ${WORKDIR}/conf/${MACHINE}/sd/u-boot.bin /mnt/narcissus/sd_image1/u-boot.bin
-			echo "Using u-boot from narcissus, no u-boot.bin found in rootfs"
-		fi
-		if [ -e ${TARGET_DIR}/boot/uImage-2.6* ] ;then 
-			cp -v ${TARGET_DIR}/boot/uImage-2.6* /mnt/narcissus/sd_image1/uImage
-			echo "Copied uImage from /boot"
-		else
-			cp -v ${WORKDIR}/conf/${MACHINE}/sd/uImage.bin /mnt/narcissus/sd_image1/uImage
-			echo "Using uImage from narcissus, no uImage found in rootfs"
-		fi
-
-		if [ -e ${TARGET_DIR}/boot/user.txt ] ; then
-			cp -v ${TARGET_DIR}/boot/user.txt /mnt/narcissus/sd_image1/
-		fi
-
-		if [ -e ${TARGET_DIR}/boot/uEnv.txt ] ; then
-			cp -v ${TARGET_DIR}/boot/uEnv.txt /mnt/narcissus/sd_image1/
-		fi
 
 		echo "Remounting ${LOOP_DEV}"
 		umount ${LOOP_DEV}
 		mount ${LOOP_DEV}
 
 		echo "Copying file system:"
-		echo "tar xzf ${TARGET_DIR}/../${IMAGENAME}-${MACHINE}.tar.gz -C /mnt/narcissus/sd_image2"
-		tar xzf ${TARGET_DIR}/../${IMAGENAME}-${MACHINE}.tar.gz -C /mnt/narcissus/sd_image2
+		tar xf $INPUTDIR/*${MACHINE}*tar* -C /mnt/narcissus/sd_image2 || true
 
-		if [ -e ${UBIFS_TMP_DIR}/${IMAGENAME}-${MACHINE}.ubi ] ; then
+		if [ -e /mnt/narcissus/sd_image2/boot/u-boot-*.bin ] ;then
+			cp -v /mnt/narcissus/sd_image2/boot/u-boot-*.bin /mnt/narcissus/sd_image1/u-boot.bin
+			echo "Copied u-boot from /boot"
+		else
+			cp -v ${WORKDIR}/conf/${MACHINE}/sd/u-boot.bin /mnt/narcissus/sd_image1/u-boot.bin
+			echo "Using u-boot from narcissus, no u-boot.bin found in rootfs"
+		fi
+		if [ -e /mnt/narcissus/sd_image2/boot/uImage-2.6* ] ;then 
+			cp -v /mnt/narcissus/sd_image2/boot/uImage-2.6* /mnt/narcissus/sd_image1/uImage
+			echo "Copied uImage from /boot"
+		else
+			cp -v ${WORKDIR}/conf/${MACHINE}/sd/uImage.bin /mnt/narcissus/sd_image1/uImage
+			echo "Using uImage from narcissus, no uImage found in rootfs"
+		fi
+
+		if [ -e /mnt/narcissus/sd_image2/boot/user.txt ] ; then
+			cp -v /mnt/narcissus/sd_image2/boot/user.txt /mnt/narcissus/sd_image1/
+		fi
+
+		if [ -e /mnt/narcissus/sd_image2/boot/uEnv.txt ] ; then
+			cp -v /mnt/narcissus/sd_image2/boot/uEnv.txt /mnt/narcissus/sd_image1/
+		fi
+
+		if [ -e $INPUTDIR/*${MACHINE}*.ubi ] ; then
 			echo "Copying UBIFS image to file system:"
-			cp ${UBIFS_TMP_DIR}/${IMAGENAME}-${MACHINE}.ubi /mnt/narcissus/sd_image2/boot/fs.ubi
+			cp $INPUTDIR/*${MACHINE}*.ubi /mnt/narcissus/sd_image2/boot/fs.ubi
 		fi
 
 		touch  /mnt/narcissus/sd_image2/narcissus-was-here
@@ -153,10 +162,12 @@ if [ -e ${WORKDIR}/conf/${MACHINE}/sd ] ; then
 		/sbin/losetup -d ${LOOP_DEV}
 		/sbin/losetup -d ${LOOP_DEV_FS}
 
-		echo "gzip -c sd.img > ${TARGET_DIR}/../${IMAGENAME}-${MACHINE}-sd-$sdsize.img.gz"
-		gzip -c sd.img > ${TARGET_DIR}/../${IMAGENAME}-${MACHINE}-sd-$sdsize.img.gz
+		echo "gzip -c sd.img > ${TARGETDIR}/../${IMAGENAME}-${MACHINE}-sd-$sdsize.img.gz"
+		gzip -c sd.img > ${TARGETDIR}/../${IMAGENAME}-${MACHINE}-sd-$sdsize.img.gz
 	fi
 	done
 fi
 }
+
+do_sdimg
 
