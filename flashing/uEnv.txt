@@ -1,3 +1,10 @@
-dvimode=hd720
-console=ttyS2,115200n8
 camera=none
+uenvcmd=i2c dev 1; run lcd1; run lcd2; run lcd3; i2c dev 0
+optargs="mem=99M@0x80000000 mem=384M@0x88000000"
+lcd1=i2c mw 40 00 00; i2c mw 40 04 80; i2c mw 40 0d 05; i2c mw 40 0d 15; i2c mw 40 0c 25; mw 49056090 10000000
+lcd2=i2c mw 40 04 30; i2c mw 40 0c 21; i2c mw 40 04 80; i2c mw 40 04 70; i2c mw 40 04 60
+lcd3=i2c mw 40 04 50; i2c mw 40 04 40; i2c mw 40 04 30; i2c mw 40 04 20
+vram=16M
+defaultdisplay=dvi
+dvimode="800x480MR-24@60 omapfb.vram=0:8M,1:4M,2:4M omapfb.debug=y omapfb.test=y omapdss.debug=y consoleblank=0 omap_vout.vid1_static_vrfb_alloc=y"
+console="tty0 console=ttyO2,115200n8"
