@@ -9,8 +9,8 @@ COMPONENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 G_FILE_STORAGE_NAME=${COMPONENT_DIR}/data/backing-file
 G_FILE_BACKING_SIZE_M=20
 G_FILE_BACKING_DEV=/dev/sda
-G_FILE_BACKING_MNT=/home/root/mnt-gadget
-
+G_FILE_BACKING_MNT=/home/root/.mnt-gadget
+TMPFS=/home/root/.tmpfs
 # Check if backing file exists
 if ! [ -e ${G_FILE_STORAGE_NAME} ] ; then
 	echo "Please reinstall the bone tester."
@@ -64,22 +64,25 @@ rm -rf ${G_FILE_BACKING_MNT}
 mkdir -p ${G_FILE_BACKING_MNT}
 mount /dev/sda ${G_FILE_BACKING_MNT}
 
-dd if=/dev/urandom of=/tmp/test-file bs=512k count=1
+mkdir -p ${TMPFS}
+mount -t tmpfs nodev ${TMPFS}
+dd if=/dev/urandom of=${TMPFS}/test-file bs=512k count=1
 
 echo "Copying test file.."
-cp /tmp/test-file ${G_FILE_BACKING_MNT}/
+cp ${TMPFS}/test-file ${G_FILE_BACKING_MNT}/
 
 umount ${G_FILE_BACKING_MNT}
 mount /dev/sda ${G_FILE_BACKING_MNT}
 
 echo "Check if file is copied properly.."
-if [ "x$(diff ${G_FILE_BACKING_MNT}/test-file /tmp/test-file)" != "x" ] ; then
+if [ "x$(diff ${G_FILE_BACKING_MNT}/test-file ${TMPFS}/test-file)" != "x" ] ; then
 	echo "Data copied onto Gadget FS not present or corrupt"
 	exit 1
 fi
 
 umount ${G_FILE_BACKING_MNT}
 rm -rf ${G_FILE_BACKING_MNT}
-rm /tmp/test-file
+umount ${TMPFS}
+rm -rf ${TMPFS}
 
 echo "USB Host/Device Test Passed!"
