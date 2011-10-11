@@ -64,7 +64,7 @@ rm -rf ${G_FILE_BACKING_MNT}
 mkdir -p ${G_FILE_BACKING_MNT}
 mount /dev/sda ${G_FILE_BACKING_MNT}
 
-dd if=/dev/urandom of=/tmp/test-file bs=4k count=$((256 * 4))
+dd if=/dev/urandom of=/tmp/test-file bs=512k count=1
 
 echo "Copying test file.."
 cp /tmp/test-file ${G_FILE_BACKING_MNT}/
