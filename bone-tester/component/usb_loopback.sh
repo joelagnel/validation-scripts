@@ -53,7 +53,6 @@ if ! [ -e /dev/sda ] ; then
 fi
 
 mkdir -p ${G_FILE_BACKING_MNT}
-sync
 mount /dev/sda ${G_FILE_BACKING_MNT}
 
 dd if=/dev/urandom of=/tmp/test-file bs=4k count=$((256 * 4))
