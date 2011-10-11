@@ -40,9 +40,10 @@ if [ "x$(lsmod | grep g_file_storage)" = "x" ] ; then
 	exit $?
 fi
 
-sync
+sync	# This makes sure the filesystem state is reflected correctly
+		# Without sync'ing, the gadget device doesn't show up
 
-# FIXME, dev name should be auto detected
+# FIXME: dev name should be auto detected
 if ! [ -e /dev/sda ] ; then
 	echo "Gadget FS Device didn't come up.. waiting for a few seconds"
 	sleep 5
