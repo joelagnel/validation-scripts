@@ -7,7 +7,8 @@
 # It is expected to be run with the board plugged into the test board.
 # Test results should be displayed and/or reported to the testboard through GPIO
 
-COMPONENT_DIR="$( cd "$( dirname "$0" )" && pwd )"/component/
+BONETESTER_DIR=/var/lib/bonetester/
+COMPONENT_DIR=${BONETESTER_DIR}/component/
 
 run_test() {
 	if [ -z "$1" ] ; then
