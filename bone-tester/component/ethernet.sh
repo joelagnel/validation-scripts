@@ -19,19 +19,12 @@ PING_COUNT=10
 # Load required kernel modules for test purposes
 # This will go away once PSP fixes the OTG host-mode issue.
 
-# Load modules in the right order
-echo " Removing kernel modules.."
-rmmod g_zero			|| true
-rmmod g_file_storage	|| true
-rmmod g_ether			|| true
-
-# USB0 Gadget
 echo "Loading USB kernel modules.."
-modprobe g_ether
-# Turn on USB1 Host for ethernet
-modprobe g_zero
-
-sleep 5		# Wait for the kernel to do its job of detecting the interfaces, registering drivers etc.
+if [ "x$(lsmod | grep g_zero)" = "x" ] ; then
+	modprobe g_zero
+	echo "Loaded g_zero"
+	sleep 5		# Wait for the kernel to do its job of detecting the interfaces, registering drivers etc.
+fi
 
 ifconfig ${HOST_DEV} ${HOST_IP} up
 ifconfig ${HUB_DEV} ${HUB_IP} up
