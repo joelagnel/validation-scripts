@@ -36,8 +36,8 @@ run_test() {
 run_tests() {
 	run_led_command round_robin_timer
 	for test in $* ; do
-		run_test $test
 		run_led_command stop_led_function
+		run_test $test
 		if [ $? -ne 0 ] ; then
 			echo "TEST FAILED: $test"
 			run_led_command flash_all
