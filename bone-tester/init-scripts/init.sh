@@ -33,6 +33,15 @@ run_test() {
 	$COMPONENT_DIR/$1.sh
 }
 
+delete_uenv() {
+	set -e
+	mkdir /tmp/mnt
+	mount /dev/mmcblk0p1 /tmp/mnt
+	rm -f /tmp/mnt/uEnv.txt
+	umount /tmp/mnt
+	set +e
+}
+
 run_tests() {
 	run_led_command init_leds
 	run_led_command toggle_timer 3 300
@@ -45,6 +54,7 @@ run_tests() {
 		fi
 	done
 	run_led_command turn_on_all
+	delete_uenv
 	echo "All tests succeeded"
 }
 
