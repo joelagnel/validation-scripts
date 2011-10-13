@@ -52,10 +52,8 @@ function run_led_command() {
 	${BONETESTER_DIR}/lib/leds.sh $*
 }
 
-sleep 10 # Let system boot completely
-
 run_led_command stop_led_function
 
 run_tests \
-	usb_loopback \
-	ethernet
+    usb_loopback \
+    ethernet
