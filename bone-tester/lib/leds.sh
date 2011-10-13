@@ -26,6 +26,7 @@ function turn_off()
 
 function turn_on_all()
 {
+	init_leds
 	for i in $(seq 0 3) ; do
 		turn_on $i
 	done
