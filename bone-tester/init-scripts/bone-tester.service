@@ -3,7 +3,7 @@ Description=BeagleBone Tester
 ConditionPathExists=|/var/lib/bone-tester
 
 [Service]
-StandardOutput=syslog+console
+StandardOutput=syslog
 ExecStart=/var/lib/bone-tester/init-scripts/init.sh
 
 [Install]
