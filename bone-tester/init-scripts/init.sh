@@ -34,7 +34,7 @@ run_test() {
 }
 
 run_tests() {
-	run_led_command round_robin
+	run_led_command round_robin_timer
 	for test in $* ; do
 		run_test $test
 		run_led_command stop_led_function
