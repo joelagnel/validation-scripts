@@ -19,14 +19,22 @@ run_test() {
 }
 
 run_tests() {
+	run_led_command round_robin
 	for test in $* ; do
 		run_test $test
+		run_led_command stop_led_function
 		if [ $? -ne 0 ] ; then
 			echo "TEST FAILED: $test"
+			run_led_command flash_all
 			return $?
 		fi
 	done
-	echo "All test succeeded"
+	run_led_command turn_on_all
+	echo "All tests succeeded"
+}
+
+function run_led_command() {
+	${BONETESTER_DIR}/lib/leds.sh $1 &
 }
 
 run_tests \
