@@ -7,7 +7,7 @@
 # It is expected to be run with the board plugged into the test board.
 # Test results should be displayed and/or reported to the testboard through GPIO
 
-BONETESTER_DIR=/var/lib/bonetester/
+BONETESTER_DIR=/var/lib/bone-tester/
 COMPONENT_DIR=${BONETESTER_DIR}/component/
 
 run_test() {
@@ -30,4 +30,5 @@ run_tests() {
 }
 
 run_tests \
-	usb_loopback
+	usb_loopback \
+	ethernet
