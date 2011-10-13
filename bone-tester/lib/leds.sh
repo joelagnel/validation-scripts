@@ -72,6 +72,14 @@ function round_robin_timer()
 	done
 }
 
+function toggle_timer()
+{
+	led=$1
+	delay=$2
+	echo timer > ${SYSFS_DIR}/beaglebone::usr$led/trigger
+	echo "${delay}" > ${SYSFS_DIR}/beaglebone::usr$led/delay_on
+}
+
 function stop_led_function()
 {
 	killall leds.sh

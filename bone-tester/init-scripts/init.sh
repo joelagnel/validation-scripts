@@ -34,7 +34,8 @@ run_test() {
 }
 
 run_tests() {
-	run_led_command round_robin_timer
+	run_led_command init_leds
+	run_led_command toggle_timer 3 300
 	for test in $* ; do
 		run_test $test
 		if [ $? -ne 0 ] ; then
@@ -48,10 +49,12 @@ run_tests() {
 }
 
 function run_led_command() {
-	${BONETESTER_DIR}/lib/leds.sh $1 &
+	${BONETESTER_DIR}/lib/leds.sh $*
 }
 
 sleep 10 # Let system boot completely
+
+run_led_command stop_led_function
 
 run_tests \
 	usb_loopback \
