@@ -61,6 +61,16 @@ function round_robin()
 	round_robin ${next_led}
 }
 
+function round_robin_timer()
+{
+	init_leds
+	for i in $(seq 0 3) ; do
+		echo timer > ${SYSFS_DIR}/beaglebone::usr$i/trigger
+		interval=$(echo "200 * (${i} + 1)" | bc)
+		echo "${interval}" > ${SYSFS_DIR}/beaglebone::usr$i/delay_on
+	done
+}
+
 function stop_led_function()
 {
 	killall leds.sh

@@ -10,6 +10,21 @@
 BONETESTER_DIR=/var/lib/bone-tester/
 COMPONENT_DIR=${BONETESTER_DIR}/component/
 
+function is_run_hardware_tests {
+	for param in $(cat /proc/cmdline) ; do
+		if [ "$param" = "run_hardware_tests" ] ; then
+			return 1
+		fi
+	done
+	return 0
+}
+
+is_run_hardware_tests
+
+if [ $? -eq 0 ] ; then
+	exit
+fi
+
 run_test() {
 	if [ -z "$1" ] ; then
 		echo "run_test: Missing parameter"
