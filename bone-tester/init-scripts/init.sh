@@ -9,6 +9,9 @@
 
 BONETESTER_DIR=/var/lib/bone-tester/
 COMPONENT_DIR=${BONETESTER_DIR}/component/
+LIB_DIR=${BONETESTER_DIR}/lib/
+
+source ${LIB_DIR}/utils.sh
 
 run_test() {
 	if [ -z "$1" ] ; then
@@ -48,6 +51,9 @@ function run_led_command() {
 }
 
 run_led_command stop_led_function
+
+# systemd gadget-init service unit might insert usb modules, prepare for this
+rmmod_all_usb_modules
 
 run_tests \
     usb_loopback \
