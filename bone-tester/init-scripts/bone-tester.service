@@ -1,6 +1,7 @@
 [Unit]
 Description=BeagleBone Tester
-ConditionPathExists=|/var/lib/bone-tester
+ConditionPathExists=/var/lib/bone-tester
+ConditionKernelCommandLine=run_hardware_tests
 
 [Service]
 StandardOutput=syslog
