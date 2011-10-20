@@ -59,3 +59,4 @@ run_tests \
     usb_loopback \
     ethernet \
     eeprom \
+    pmic \
