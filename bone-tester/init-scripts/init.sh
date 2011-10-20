@@ -57,4 +57,5 @@ rmmod_all_usb_modules
 
 run_tests \
     usb_loopback \
-    ethernet
+    ethernet \
+    eeprom \
