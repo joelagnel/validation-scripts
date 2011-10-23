@@ -14,5 +14,5 @@ rmmod_all_usb_modules() {
 
 read_gpio() {
 	echo $1 > /sys/class/gpio/export
-	return $(cat "/sys/class/gpio/gpio$1/value")
+	cat /sys/class/gpio/gpio$1/value
 }
