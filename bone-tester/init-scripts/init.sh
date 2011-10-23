@@ -18,7 +18,7 @@ run_test() {
 		echo "run_test: Missing parameter"
 		return 1
 	fi
-	$COMPONENT_DIR/$1.sh
+	time $COMPONENT_DIR/$1.sh
 }
 
 delete_uenv() {
@@ -34,12 +34,14 @@ run_tests() {
 	run_led_command init_leds
 	run_led_command toggle_timer 3 300
 	for test in $* ; do
+		echo "Running test: ${test}"
 		run_test $test
 		if [ $? -ne 0 ] ; then
 			echo "TEST FAILED: $test"
 			run_led_command flash_all
 			return $?
 		fi
+		echo "---------------------------------------------------"
 	done
 	run_led_command turn_on_all
 	delete_uenv
@@ -55,9 +57,11 @@ run_led_command stop_led_function
 # systemd gadget-init service unit might insert usb modules, prepare for this
 rmmod_all_usb_modules
 
+echo "***************************************************"
 run_tests \
     usb_loopback \
     ethernet \
     eeprom \
     pmic \
-    memory \
+    memory 
+echo "***************************************************"
