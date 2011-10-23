@@ -13,6 +13,11 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
 
+if [ "x$(read_gpio 38)" != "x0" ] ; then
+	echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
+	exit 0
+fi
+
 run_test() {
 	if [ -z "$1" ] ; then
 		echo "run_test: Missing parameter"
