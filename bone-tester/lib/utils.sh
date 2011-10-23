@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 USB_MODULES="g_ether \
 	g_mass_storage   \
 	g_zero           \
