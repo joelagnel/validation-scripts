@@ -60,3 +60,4 @@ run_tests \
     ethernet \
     eeprom \
     pmic \
+    memory \
