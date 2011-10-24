@@ -3,6 +3,7 @@
 echo "USB loopback test"
 
 set -e
+set -x
 
 COMPONENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
@@ -29,14 +30,7 @@ rmmod g_ether			|| true
 # USB0 Gadget
 echo "Loading USB kernel modules.."
 modprobe g_file_storage file=${G_FILE_STORAGE_NAME}
-# Turn on USB1 Host
-modprobe g_zero
 
-echo "Checking if loaded correctly.."
-if [ "x$(lsmod | grep g_zero)" = "x" ] ; then
-	echo "Failed to load kernel modules."
-	exit $?
-fi
 if [ "x$(lsmod | grep g_file_storage)" = "x" ] ; then
 	echo "Failed to load kernel modules."
 	exit $?

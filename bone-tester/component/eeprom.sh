@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 # Important to Error Out on any errors
 set -e
 

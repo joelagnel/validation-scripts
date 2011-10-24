@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # Important to Error Out on any errors
 set -e
 
@@ -14,17 +16,6 @@ HUB_RX_PACKETS=/sys/class/net/eth1/statistics/rx_packets
 
 PING_INTERVAL=1
 PING_COUNT=10
-
-# Load kernel modules
-# Load required kernel modules for test purposes
-# This will go away once PSP fixes the OTG host-mode issue.
-
-echo "Loading USB kernel modules.."
-if [ "x$(lsmod | grep g_zero)" = "x" ] ; then
-	modprobe g_zero
-	echo "Loaded g_zero"
-	sleep 5		# Wait for the kernel to do its job of detecting the interfaces, registering drivers etc.
-fi
 
 ifconfig ${HOST_DEV} ${HOST_IP} up
 ifconfig ${HUB_DEV} ${HUB_IP} up
