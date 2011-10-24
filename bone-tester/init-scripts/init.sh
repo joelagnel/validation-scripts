@@ -49,7 +49,6 @@ run_tests() {
 		echo "---------------------------------------------------"
 	done
 	run_led_command turn_on_all
-	delete_uenv
 	echo "All tests succeeded"
 }
 
