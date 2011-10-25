@@ -15,6 +15,7 @@ rmmod_all_usb_modules() {
 read_gpio() {
 	echo $1 > /sys/class/gpio/export
 	cat /sys/class/gpio/gpio$1/value
+	echo $1 > /sys/class/gpio/unexport
 }
 
 bone_echo() {
