@@ -21,6 +21,6 @@ read_gpio() {
 bone_echo() {
 	echo "[bone-info] $*"
 	if [ -e /dev/ttyUSB0 ] ; then
-		echo "[bone-info] $*" > /dev/ttyUSB0
+		echo "[$(date)] [bone-info] $*" > /dev/ttyUSB0
 	fi
 }
