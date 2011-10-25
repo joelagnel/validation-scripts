@@ -60,6 +60,7 @@ run_led_command stop_led_function
 
 # systemd gadget-init service unit might insert usb modules, prepare for this
 rmmod_all_usb_modules
+rm /etc/udev/rules.d/70-persistent-net.rules
 
 echo "***************************************************"
 run_tests \
@@ -69,3 +70,6 @@ run_tests \
     pmic \
     memory 
 echo "***************************************************"
+
+rm /etc/udev/rules.d/70-persistent-net.rules
+halt
