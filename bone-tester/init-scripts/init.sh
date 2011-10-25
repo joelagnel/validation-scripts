@@ -17,7 +17,7 @@ bone_echo "Waiting for ttyUSB0"
 while ! [ -e /dev/ttyUSB0 ] ; do bone_echo "" > /dev/null; done
 
 stty -F /dev/ttyUSB0 115200
-tail -f /var/log/messages | grep "bone-info" > /dev/ttyUSB0 &
+tail -f /var/log/messages | grep "bone-info" | grep -v "echo '\[bone-info" > /dev/ttyUSB0 &
 
 if [ "x$(read_gpio 38)" != "x0" ] ; then
 	bone_echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
