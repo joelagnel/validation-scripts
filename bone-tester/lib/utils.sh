@@ -18,5 +18,5 @@ read_gpio() {
 }
 
 bone_echo() {
-	echo "[bone-info] [$(date)] $*"
+	echo "[bone-info] $*"
 }
