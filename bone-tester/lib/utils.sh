@@ -16,3 +16,7 @@ read_gpio() {
 	echo $1 > /sys/class/gpio/export
 	cat /sys/class/gpio/gpio$1/value
 }
+
+bone_echo() {
+	echo "[bone-info] [$(date)] $*"
+}

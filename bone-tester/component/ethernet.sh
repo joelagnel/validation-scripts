@@ -1,5 +1,12 @@
 #!/bin/bash
 
+BONETESTER_DIR=/var/lib/bone-tester/
+COMPONENT_DIR=${BONETESTER_DIR}/component/
+LIB_DIR=${BONETESTER_DIR}/lib/
+
+source ${LIB_DIR}/utils.sh
+
+
 set -x
 
 # Important to Error Out on any errors
@@ -31,9 +38,9 @@ total_rx=$(echo "${new_rx}-${old_rx}" | bc)
 deviation=$(echo "${PING_COUNT}-${total_rx}" | bc)
 
 if [ ${deviation} -gt 2 ] ; then
-	echo "Packet loss encountered, ethernet test fail."
+	bone_echo "Packet loss encountered, ethernet test fail."
 	exit 1
 fi
 
-echo "Ethernet test passed!"
+bone_echo "Ethernet test passed!"
 
