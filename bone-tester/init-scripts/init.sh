@@ -13,14 +13,14 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
 
-bone_echo "Waiting for ttyUSB0"
-while ! [ -e /dev/ttyUSB0 ] ; do bone_echo "" > /dev/null; done
-stty -F /dev/ttyUSB0 115200
-
 if [ "x$(read_gpio 38)" != "x0" ] ; then
 	bone_echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
 	exit 0
 fi
+
+bone_echo "Waiting for ttyUSB0"
+while ! [ -e /dev/ttyUSB0 ] ; do bone_echo "" > /dev/null; done
+stty -F /dev/ttyUSB0 115200
 
 run_test() {
 	if [ -z "$1" ] ; then
