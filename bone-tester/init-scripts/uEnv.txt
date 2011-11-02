@@ -1,1 +1,1 @@
-ip_method=none run_hardware_tests
+optargs=run_hardware_tests
