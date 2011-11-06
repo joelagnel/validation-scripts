@@ -27,8 +27,9 @@ fi
 
 # Load modules in the right order
 bone_echo " Removing kernel modules.."
+rmmod g_mass_storage		|| true
 rmmod g_zero			|| true
-rmmod g_file_storage	|| true
+rmmod g_file_storage		|| true
 rmmod g_ether			|| true
 
 # USB0 Gadget

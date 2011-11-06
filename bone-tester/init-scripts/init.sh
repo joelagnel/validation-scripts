@@ -13,8 +13,14 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
 
+rmmod_all_usb_modules
+
 # Turn on USB host just incase
 echo F > /proc/driver/musb_hdrc.1
+sleep 1
+echo F > /proc/driver/musb_hdrc.1
+sleep 1
+
 
 if [ "x$(read_gpio 38)" != "x0" ] ; then
 	bone_echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
