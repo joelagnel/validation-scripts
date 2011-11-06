@@ -56,7 +56,9 @@ run_tests() {
 		run_test $test
 		if [ $? -ne 0 ] ; then
 			bone_echo "TEST FAILED: $test"
-			run_led_command flash_all
+			# run_led_command flash_all
+			run_led_command turn_off_all
+			halt
 			return $?
 		fi
 		bone_echo "---------------------------------------------------"

@@ -8,7 +8,7 @@ function sleep_for() {
 
 function init_leds()
 {
-	for i in $(seq 0 3) ; do
+	for i in $(seq 2 3) ; do
 		echo none > ${SYSFS_DIR}/beaglebone::usr$i/trigger
 		turn_off $i
 	done
@@ -27,9 +27,14 @@ function turn_off()
 function turn_on_all()
 {
 	init_leds
-	for i in $(seq 0 3) ; do
+	for i in $(seq 2 3) ; do
 		turn_on $i
 	done
+}
+
+function turn_off_all()
+{
+	init_leds
 }
 
 function flash_all()
@@ -37,11 +42,11 @@ function flash_all()
 	init_leds
 	while [ 1 ] ; do
 		sleep_for 0.5
-		for i in $(seq 0 3) ; do
+		for i in $(seq 2 3) ; do
 			turn_on $i
 		done
 		sleep_for 0.5
-		for i in $(seq 0 3) ; do
+		for i in $(seq 2 3) ; do
 			turn_off $i
 		done
 	done
