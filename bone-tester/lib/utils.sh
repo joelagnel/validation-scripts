@@ -12,6 +12,21 @@ rmmod_all_usb_modules() {
 	done
 }
 
+get_iface_name() {
+	type=$1
+	iface=""
+	for i in /sys/class/net/* ; do
+		iface=$(basename $i)
+		if [ "$iface" = "lo" ] ; then iface="" ; continue ; fi
+		if [ "x$(ls -la $i/device/ | grep $type)" != "x" ] ; then
+			echo $iface
+			return 0
+		fi
+	done
+	echo $iface
+	return 0
+}
+
 read_gpio() {
 	echo $1 > /sys/class/gpio/export
 	cat /sys/class/gpio/gpio$1/value

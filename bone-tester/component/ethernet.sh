@@ -6,20 +6,29 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
 
-
 set -x
 
 # Important to Error Out on any errors
 set -e
 
-HOST_DEV=eth0
+HOST_DEV=$(get_iface_name plat)
 HOST_IP="192.168.100.1"
 
-HUB_DEV=eth1
+if [ "x${HOST_DEV}" = "x" ] ; then
+	echo "Board ethernet device not found!"
+	exit 1
+fi
+
+HUB_DEV=$(get_iface_name usb)
 HUB_IP="192.168.100.2"
 
-HOST_RX_PACKETS=/sys/class/net/eth0/statistics/rx_packets
-HUB_RX_PACKETS=/sys/class/net/eth1/statistics/rx_packets
+if [ "x${HUB_DEV}" = "x" ] ; then
+	echo "Hub ethernet device not found!"
+	exit 1
+fi
+
+HOST_RX_PACKETS=/sys/class/net/${HOST_DEV}/statistics/rx_packets
+HUB_RX_PACKETS=/sys/class/net/${HUB_DEV}/statistics/rx_packets
 
 PING_INTERVAL=1
 PING_COUNT=10
