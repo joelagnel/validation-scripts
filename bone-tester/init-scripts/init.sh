@@ -13,6 +13,11 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
 
+if [ "x$(read_gpio 38)" != "x0" ] ; then
+	bone_echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
+	exit 0
+fi
+
 rmmod_all_usb_modules
 
 # Turn on USB host just incase
@@ -21,14 +26,19 @@ sleep 1
 echo F > /proc/driver/musb_hdrc.1
 sleep 1
 
+x=5
+while [ $x != 0 ] ; do 
+	if [ -e /dev/ttyUSB0 ] ; then break; fi
+	echo "Checking for USB device, attempt $x"
+	x=$(($x-1))
+	sleep 1
+done
 
-if [ "x$(read_gpio 38)" != "x0" ] ; then
-	bone_echo "bone tester: GPIO 38 (pin 3 connector A) is not grounded, aborting tests"
-	exit 0
+if [ $x -eq 0 ] ; then
+	echo "died waiting for usb-serial device"
+	exit
 fi
 
-bone_echo "Waiting for ttyUSB0"
-while ! [ -e /dev/ttyUSB0 ] ; do bone_echo "" > /dev/null; done
 stty -F /dev/ttyUSB0 115200
 
 run_test() {
