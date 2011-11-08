@@ -1,1 +1,1 @@
-optargs=run_hardware_tests
+optargs=run_hardware_tests quiet
