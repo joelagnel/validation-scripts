@@ -27,6 +27,10 @@ get_iface_name() {
 	return 0
 }
 
+# This function takes the 'converted' number of the gpio: 
+#	gpio 0_17 -> gpio 17
+#	gpio 1_13 -> gpio 45
+#	gpio 2_3  -> gpio 67 
 read_gpio() {
 	echo $1 > /sys/class/gpio/export
 	cat /sys/class/gpio/gpio$1/value
