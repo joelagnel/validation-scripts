@@ -19,5 +19,10 @@ if [ $(${LIB_DIR}/read-eeprom.sh 50 4 8) != "A335BONE" ] ; then
 	exit 1
 fi
 
+BONEREVISION="$(${LIB_DIR}/read-eeprom.sh 50 14 2)"
+BONESERIAL="$(${LIB_DIR}/read-eeprom.sh 50 16 12)"
+
+bone_echo "Beaglebone $BONEREVISION with serial $BONESERIAL"
+
 bone_echo "EEPROM test passed!"
 
