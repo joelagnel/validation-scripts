@@ -18,7 +18,7 @@ if [ "x$(read_gpio 38)" != "x0" ] ; then
 	exit 0
 fi
 
-rmmod_all_usb_modules
+# rmmod_all_usb_modules
 
 # Turn on USB host just incase
 echo F > /proc/driver/musb_hdrc.1
@@ -84,7 +84,7 @@ function run_led_command() {
 run_led_command stop_led_function
 
 # systemd gadget-init service unit might insert usb modules, prepare for this
-rmmod_all_usb_modules
+# rmmod_all_usb_modules
 rm /etc/udev/rules.d/70-persistent-net.rules
 
 bone_echo "***************************************************"

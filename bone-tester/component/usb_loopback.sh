@@ -25,6 +25,9 @@ mkdir -p ${TMPFS}
 mount -t tmpfs nodev ${TMPFS}
 dd if=/dev/urandom of=${TMPFS}/test-file bs=512k count=1
 
+mkdir -p ${G_FILE_BACKING_MNT}
+mount ${G_FILE_BACKING_DEV} ${G_FILE_BACKING_MNT}
+
 bone_echo "Copying test file.."
 cp ${TMPFS}/test-file ${G_FILE_BACKING_MNT}/
 
