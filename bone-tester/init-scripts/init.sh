@@ -18,8 +18,6 @@ if [ "x$(read_gpio 38)" != "x0" ] ; then
 	exit 0
 fi
 
-# rmmod_all_usb_modules
-
 x=5
 while [ $x != 0 ] ; do 
 	if [ -e /dev/ttyUSB0 ] ; then break; fi
@@ -77,10 +75,6 @@ function run_led_command() {
 
 run_led_command stop_led_function
 
-# systemd gadget-init service unit might insert usb modules, prepare for this
-# rmmod_all_usb_modules
-rm /etc/udev/rules.d/70-persistent-net.rules
-
 bone_echo "***************************************************"
 run_tests \
     usb_loopback \
@@ -90,5 +84,4 @@ run_tests \
     memory 
 bone_echo "***************************************************"
 
-rm /etc/udev/rules.d/70-persistent-net.rules
 halt
