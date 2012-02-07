@@ -20,12 +20,6 @@ fi
 
 # rmmod_all_usb_modules
 
-# Turn on USB host just incase
-echo F > /proc/driver/musb_hdrc.1
-sleep 1
-echo F > /proc/driver/musb_hdrc.1
-sleep 1
-
 x=5
 while [ $x != 0 ] ; do 
 	if [ -e /dev/ttyUSB0 ] ; then break; fi
