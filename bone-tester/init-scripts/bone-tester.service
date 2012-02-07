@@ -4,7 +4,7 @@ ConditionPathExists=/var/lib/bone-tester
 ConditionKernelCommandLine=run_hardware_tests
 
 [Service]
-StandardOutput=syslog
+StandardOutput=syslog+console
 ExecStart=/var/lib/bone-tester/init-scripts/init.sh
 
 [Install]
