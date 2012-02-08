@@ -14,7 +14,7 @@ LIB_DIR=${BONETESTER_DIR}/lib/
 source ${LIB_DIR}/utils.sh
 
 if [ "x$(read_gpio 38)" != "x0" ] ; then
-	bone_echo "bone tester: GPIO 1_32 (P8_3) is not grounded, not running tests"
+	bone_echo "bone tester: GPIO 1_6 (P8_3) is not grounded, not running tests"
 	exit 0
 fi
 
