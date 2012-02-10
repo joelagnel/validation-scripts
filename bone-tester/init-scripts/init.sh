@@ -7,16 +7,14 @@
 # It is expected to be run with the board plugged into the test board.
 # Test results should be displayed and/or reported to the testboard through GPIO
 
+# IGNOREPIN=true
+# NOHALT=true
+
 BONETESTER_DIR=/var/lib/bone-tester/
 COMPONENT_DIR=${BONETESTER_DIR}/component/
 LIB_DIR=${BONETESTER_DIR}/lib/
 
 source ${LIB_DIR}/utils.sh
-
-if [ "x$(read_gpio 38)" != "x0" ] ; then
-	bone_echo "bone tester: GPIO 1_6 (P8_3) is not grounded, not running tests"
-	exit 0
-fi
 
 x=5
 while [ $x != 0 ] ; do 
@@ -32,6 +30,17 @@ if [ $x -eq 0 ] ; then
 fi
 
 stty -F /dev/ttyUSB0 115200
+
+bone_echo "bone tester: starting"
+
+if [ $IGNOREPIN ]; then
+	bone_echo "bone tester: skipping test for GPIO 1_6 (P8_3)"
+else
+	if [ "x$(read_gpio 38)" != "x0" ] ; then
+		bone_echo "bone tester: GPIO 1_6 (P8_3) is not grounded, not running tests"
+		exit 0
+	fi
+fi
 
 run_test() {
 	if [ -z "$1" ] ; then
@@ -51,6 +60,7 @@ delete_uenv() {
 }
 
 run_tests() {
+	FAIL=false
 	run_led_command init_leds
 	run_led_command toggle_timer 3 300
 	for test in $* ; do
@@ -59,14 +69,22 @@ run_tests() {
 		if [ $? -ne 0 ] ; then
 			bone_echo "TEST FAILED: $test"
 			# run_led_command flash_all
-			run_led_command turn_off_all
-			halt
-			return $?
+			# run_led_command turn_off_all
+			FAIL=true
+			# return $?
 		fi
 		bone_echo "---------------------------------------------------"
 	done
-	run_led_command turn_on_all
-	bone_echo "All tests succeeded"
+	if [ $FAIL ]; then
+		run_led_command turn_off_all
+		bone_echo "One or more tests failed"
+		if [ ! $NOHALT ]; then 
+			halt
+		fi
+	else
+		run_led_command turn_on_all
+		bone_echo "All tests succeeded"
+	fi
 }
 
 function run_led_command() {
@@ -80,8 +98,9 @@ run_tests \
     usb_loopback \
     ethernet \
     eeprom \
-    pmic \
     memory 
 bone_echo "***************************************************"
 
-halt
+if [ ! $NOHALT ]; then 
+	halt
+fi
