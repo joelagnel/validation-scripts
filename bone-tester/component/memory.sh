@@ -10,4 +10,4 @@ source ${LIB_DIR}/utils.sh
 
 memtester 1M 1
 
-echo "Memory tests passed."
+bone_echo "Memory tests passed."
