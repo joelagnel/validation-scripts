@@ -75,7 +75,7 @@ run_tests() {
 		fi
 		bone_echo "---------------------------------------------------"
 	done
-	if [ $FAIL ]; then
+	if [ "x$FAIL" = "xtrue" ]; then
 		run_led_command turn_off_all
 		bone_echo "One or more tests failed"
 		if [ ! $NOHALT ]; then 
