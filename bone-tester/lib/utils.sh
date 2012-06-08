@@ -1,5 +1,14 @@
 #!/bin/bash
 
+TTYDEV=/dev/$(basename /sys/bus/usb-serial/drivers/pl2303/ttyUSB*)
+
+if [ ! -e $TTYDEV ] ; then
+        echo "couldn't find usb device"
+        exit
+fi
+
+stty -F $TTYDEV 115200
+
 USB_MODULES="g_ether \
 	g_mass_storage   \
 	g_zero           \
@@ -39,7 +48,7 @@ read_gpio() {
 
 bone_echo() {
 	echo "[bone-info] $*"
-	if [ -e /dev/ttyUSB0 ] ; then
-		echo "[$(date)] [bone-info] $*" > /dev/ttyUSB0
+	if [ -e $TTYDEV ] ; then
+		echo "[$(date)] [bone-info] $*" > $TTYDEV
 	fi
 }
