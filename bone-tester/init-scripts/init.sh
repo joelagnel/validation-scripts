@@ -14,22 +14,8 @@ BONETESTER_DIR=/var/lib/bone-tester/
 COMPONENT_DIR=${BONETESTER_DIR}/component/
 LIB_DIR=${BONETESTER_DIR}/lib/
 
+sleep 5
 source ${LIB_DIR}/utils.sh
-
-x=5
-while [ $x != 0 ] ; do 
-	if [ -e /dev/ttyUSB0 ] ; then break; fi
-	echo "Checking for USB device, attempt $x"
-	x=$(($x-1))
-	sleep 1
-done
-
-if [ $x -eq 0 ] ; then
-	echo "died waiting for usb-serial device"
-	exit
-fi
-
-stty -F /dev/ttyUSB0 115200
 
 bone_echo "bone tester: starting"
 
