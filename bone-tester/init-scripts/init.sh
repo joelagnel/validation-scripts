@@ -84,7 +84,8 @@ run_tests \
     usb_loopback \
     ethernet \
     eeprom \
-    memory 
+    memory \
+    pmic
 bone_echo "***************************************************"
 
 if [ ! $NOHALT ]; then 
