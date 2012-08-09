@@ -7,11 +7,11 @@ PID=$!
 echo "Recording..."
 sleep 1
 echo "Playing..."
-play /tmp/sine.wav
+aplay /tmp/sine.wav
 kill -15 $PID
 sleep 1
 echo "Connect the audio out to speakers..."
 sleep 3
 echo "Playing..."
-play /tmp/sine-in.wav
+aplay /tmp/sine-in.wav
 sox /tmp/sine-in.wav -n stat
