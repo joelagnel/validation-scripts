@@ -19,8 +19,8 @@ if [ $(${LIB_DIR}/read-eeprom.sh 50 4 8) != "A335BONE" ] ; then
 	exit 1
 fi
 
-if $(lsusb | grep -q "0403:6010") ; then
-	bone_echo "FTDI EEPROM test passed, detected 0403:6010"
+if [ "x$(lsusb -v|grep -i beaglebone)" != "x" ] ; then
+	bone_echo "FTDI EEPROM test passed, detected beaglebone in USB device descriptor"
 else
 	bone_echo "FTDI EEPROM test failed"
 	bone_echo "USB devices present:"
